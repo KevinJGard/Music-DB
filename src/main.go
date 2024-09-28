@@ -16,7 +16,7 @@ func main() {
 	directory := os.Args[1]
 	files, err := miner.FindMP3Files(directory)
 	if err != nil {
-		log.Fatalf("Error traversing directory: %v", err)
+		log.Fatalf("Error traversing directory %s: %v", directory, err)
 	}
 	fmt.Println("MP3 files found:")
 	for _, file := range files {
@@ -35,7 +35,7 @@ func main() {
 		disc := metadata["Disc"].(map[string]int)
 		fmt.Printf("Disc Number: %d \n", disc["Number"])
 		fmt.Printf("Comment: %s \n", metadata["Comment"])
-		track:= metadata["Track"].(map[string]int)
+		track := metadata["Track"].(map[string]int)
 		fmt.Printf("Track: %d of %d \n", track["Number"], track["Total"])
 		fmt.Printf("Composer: %s \n", metadata["Composer"])
 	}

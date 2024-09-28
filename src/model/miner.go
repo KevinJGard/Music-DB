@@ -43,10 +43,10 @@ func (miner *Miner) MineMetadata(file string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return miner.assignTag(metadata), nil
+	return miner.AssignTag(metadata), nil
 }
 
-func (miner *Miner) assignTag(metadata tag.Metadata) map[string]interface{} {
+func (miner *Miner) AssignTag(metadata tag.Metadata) map[string]interface{} {
 	disc, totalDiscs := metadata.Disc()
 	trackNumber, totalTracks := metadata.Track()
 	disc, totalDiscs = checkTrackTag(disc, totalDiscs)
