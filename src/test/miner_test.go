@@ -24,23 +24,23 @@ func TestMineMetadata(t *testing.T) {
 		t.Fatalf("Error reading metadata for %s: %v", file, err)
 	}
 
-	if metadata.Title() == "" {
+	if metadata["Title"] == "" {
 		t.Error("Tag not found.")
 	}
-	if metadata.Artist() == "" {
+	if metadata["Artist"] == "" {
 		t.Error("Tag not found.")
 	}
-	if metadata.Album() == "" {
+	if metadata["Album"] == "" {
 		t.Error("Tag not found.")
 	}
-	if metadata.Genre() == "" {
+	if metadata["Genre"] == "" {
 		t.Error("Tag not found.")
 	}
-	if metadata.Year() == 0 {
+	if metadata["Year"] == 0 {
 		t.Error("Tag not found.")
 	}
-	trackNumber, totalTracks := metadata.Track()
-	if trackNumber == 0 && totalTracks == 0 {
+	track:= metadata["Track"].(map[string]int)
+	if track["Number"] == 0 && track["Total"] == 0 {
 		t.Error("Tag not found.")
 	}
 }
