@@ -11,9 +11,14 @@ func main() {
 	if len(os.Args) != 2 {
 		log.Fatalf("Usage: %s <directory>", os.Args[0])
 	}
+	config := model.NewConfig()
+	err := config.SetDirectory(os.Args[1])
+	if err != nil {
+		log.Fatalf("Error setting directory: %v", err)
+	}
+	directory := config.MusicDirectory
 	miner := model.NewMiner()
 
-	directory := os.Args[1]
 	files, err := miner.FindMP3Files(directory)
 	if err != nil {
 		log.Fatalf("Error traversing directory %s: %v", directory, err)
