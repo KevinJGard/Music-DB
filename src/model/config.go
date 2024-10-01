@@ -24,7 +24,7 @@ func NewConfig() *Config {
 			log.Fatalf("Error creating config file: %v", err)
 		}
 	} else {
-		err := loadConfig(configFile, config)
+		err := LoadConfig(configFile, config)
 		if err != nil {
 			log.Fatalf("Error loading config: %v", err)
 		}
@@ -32,7 +32,7 @@ func NewConfig() *Config {
 	return config
 }
 
-func saveConfig(file string, config *Config) error {
+func SaveConfig(file string, config *Config) error {
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return err
@@ -40,7 +40,7 @@ func saveConfig(file string, config *Config) error {
 	return os.WriteFile(file, data, 0644)
 }
 
-func loadConfig(file string, config *Config) error {
+func LoadConfig(file string, config *Config) error {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
@@ -51,5 +51,5 @@ func loadConfig(file string, config *Config) error {
 func (c *Config) SetDirectory(newDir string) error {
 	c.MusicDirectory = newDir
 	configFile := filepath.Join(os.Getenv("HOME"), ".config", "MusicDB", "config.json")
-	return saveConfig(configFile, c)
+	return SaveConfig(configFile, c)
 }
