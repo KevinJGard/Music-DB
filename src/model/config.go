@@ -48,8 +48,8 @@ func LoadConfig(file string, config *Config) error {
 	return json.Unmarshal(data, config)
 }
 
-func (c *Config) SetDirectory(newDir string) error {
-	c.MusicDirectory = newDir
+func (config *Config) SetDirectory(newDir string) error {
+	config.MusicDirectory = newDir
 	configFile := filepath.Join(os.Getenv("HOME"), ".config", "MusicDB", "config.json")
-	return SaveConfig(configFile, c)
+	return SaveConfig(configFile, config)
 }

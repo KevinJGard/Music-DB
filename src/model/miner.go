@@ -3,6 +3,7 @@ package model
 import (
 	"os"
 	"path/filepath"
+	"time"
 	"github.com/dhowden/tag"
 )
 
@@ -74,7 +75,7 @@ func checkStringTag(tag string) string {
 
 func checkYearTag(year int) int {
 	if year == 0 {
-		return 1
+		return time.Now().Year()
 	}
 	return year
 }
@@ -88,4 +89,38 @@ func checkTrackTag(trackNumber int, totalTracks int) (int, int) {
 		return trackNumber, 1
 	}
 	return trackNumber, totalTracks
+}
+
+func (miner *Miner) ProcessFile(db *DataBase, file string) error {
+	metadata, err := miner.MineMetadata(file)
+	if err != nil {
+		return err
+	}
+
+	var performerID int64
+	if metadata["Artist"] == "Unknown" {
+		performerID, err = db.InsertPerformerIfNotExists(metadata["Artist"].(string), 2)
+	} else {
+		performerID, err = db.InsertPerformerIfNotExists(metadata["Artist"].(string), 0)
+	}
+	if err != nil {
+		return err
+	}
+
+	albumID, err := db.InsertAlbumIfNotExists(metadata["Album"].(string), metadata["Year"].(int), file)
+	if err != nil {
+		return err
+	}
+
+	song := Song{
+		PerformerID: performerID,
+		AlbumID: albumID,
+		Path: file,
+		Title: metadata["Title"].(string),
+		Track: metadata["Track"].(map[string]int)["Number"],
+		Year: metadata["Year"].(int),
+		Genre: metadata["Genre"].(string),
+	}
+
+	return db.InsertSong(&song)
 }

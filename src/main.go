@@ -18,6 +18,7 @@ func main() {
 	}
 	directory := config.MusicDirectory
 	miner := model.NewMiner()
+	database := model.NewDataBase()
 
 	files, err := miner.FindMP3Files(directory)
 	if err != nil {
@@ -43,5 +44,12 @@ func main() {
 		track := metadata["Track"].(map[string]int)
 		fmt.Printf("Track: %d of %d \n", track["Number"], track["Total"])
 		fmt.Printf("Composer: %s \n", metadata["Composer"])
+
+		if err := miner.ProcessFile(database, file); err != nil {
+			log.Printf("Error procesing file %s: %v", file, err)
+			continue
+		}
 	}
+
+	fmt.Println("Everything was done correctly.")
 }
