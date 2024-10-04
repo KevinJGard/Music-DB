@@ -37,7 +37,7 @@ func createTempDirectoryWithFiles(tempDir string, files []string) error {
 }
 
 func TestFindMP3Files(t *testing.T) {
-	files := []string{"test1.mp3", "test2.mp3", "test3.mp3"}
+	files := []string{"test1.mp3", "test2.mp3", "test3.mp3", "test4.txt"}
 	tempDir := t.TempDir()
 	err := createTempDirectoryWithFiles(tempDir, files)
 	assert.NoError(t, err, "Failed to create temp dir with files.")
@@ -46,9 +46,9 @@ func TestFindMP3Files(t *testing.T) {
 	foundFiles, err := miner.FindMP3Files(tempDir)
 	assert.NoError(t, err, "Error traversing directory %s.", tempDir)
 	
-	assert.Len(t, foundFiles, len(files), "Expected %d MP3 files, but found %d.", len(files), len(foundFiles))
+	assert.Len(t, foundFiles, 3, "Expected %d MP3 files, but found %d.", 3, len(foundFiles))
 
-	for _, file := range files {
+	for _, file := range files[:3] {
 		filePath := filepath.Join(tempDir, file)
 		assert.Contains(t, foundFiles, filePath, "Expected file %s not found in results.", filePath)
 	}
@@ -96,4 +96,36 @@ func TestAssignTag(t *testing.T) {
 	track := tags["Track"].(map[string]int)
 	assert.NotZero(t, track["Number"], "Expected valid Track number or \"1\".")
 	assert.NotZero(t, track["Total"], "Expected valid Track total or \"1\".")
+}
+
+func TestProcessFile(t *testing.T) {
+	tempDir := t.TempDir()
+	testFile := "test.mp3"
+
+	err := copyMp3(tempDir, testFile)
+	assert.NoError(t, err, "Failed to copy test file.")
+
+	db := model.NewDataBase()
+	miner := model.NewMiner()
+	filePath := filepath.Join(tempDir, testFile)
+    err = miner.ProcessFile(db, filePath)
+    assert.NoError(t, err, "Error processing the file.")
+
+    var id int
+	query := `SELECT id_rola FROM rolas WHERE title = ?`
+	err = db.Db.QueryRow(query, "Test Title").Scan(&id)
+	assert.NoError(t, err, "Expected no error while querying for inserted song.")
+	assert.NotZero(t, id, "Expected song to be inserted into the database.")
+
+	query = `SELECT id_performer FROM performers WHERE name = ?`
+	err = db.Db.QueryRow(query, "Test Artist").Scan(&id)
+	assert.NoError(t, err, "Expected no error while querying for inserted performer.")
+	assert.NotZero(t, id, "Expected performer to be inserted into the database.")
+
+	query = `SELECT id_album FROM albums WHERE name = ?`
+	err = db.Db.QueryRow(query, "Test Album").Scan(&id)
+	assert.NoError(t, err, "Expected no error while querying for inserted album.")
+	assert.NotZero(t, id, "Expected album to be inserted into the database.")
+
+	defer db.Db.Close()
 }
