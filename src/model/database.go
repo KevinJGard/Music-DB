@@ -148,6 +148,7 @@ func (db *DataBase) InsertPerformerIfNotExists(name string, performerType int) (
 	if err != nil {
 		return 0, err
 	}
+	performer.ID, err = db.GetPerformerID(performer.Name)
 	return performer.ID, nil
 }
 
@@ -166,5 +167,6 @@ func (db *DataBase) InsertAlbumIfNotExists(name string, year int, path string) (
 	if err != nil {
 		return 0, err
 	}
+	album.ID, err = db.GetAlbumID(album.Name, album.Year)
 	return album.ID, nil
 }
