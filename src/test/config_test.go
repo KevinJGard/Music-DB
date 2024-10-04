@@ -20,7 +20,8 @@ func TestNewConfig(t *testing.T) {
 	configFile := filepath.Join(configDir, "config.json")
 	assert.FileExists(t, configFile, "Expected config file to exist.")
 
-	assert.Empty(t, config.MusicDirectory, "Expected MusicDirectory to be empty.")
+	expectedDir := model.GetDefaultDir()
+	assert.Equal(t, expectedDir, config.MusicDirectory, "Expected MusicDirectory to match the default directory..")
 }
 
 func TestSaveConfig(t *testing.T) {
@@ -81,4 +82,14 @@ func TestSetDirectory(t *testing.T) {
 
 	configFile := filepath.Join(configDir, "config.json")
 	assert.FileExists(t, configFile, "Expected config file to exist after SetDirectory.")
+}
+
+func TestGetDefaultDir(t *testing.T) {
+	os.Setenv("LANG", "es_ES.UTF-8")
+	expectedDir := filepath.Join(os.Getenv("HOME"), "Música")
+	assert.Equal(t, expectedDir, model.GetDefaultDir(), "Expected default directory to match for Spanish.")
+
+	os.Setenv("LANG", "en_US.UTF-8")
+	expectedDir = filepath.Join(os.Getenv("HOME"), "Music")
+	assert.Equal(t, expectedDir, model.GetDefaultDir(), "Expected default directory to match for English.")
 }

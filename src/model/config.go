@@ -20,7 +20,7 @@ func NewConfig() *Config {
 	config := &Config{}
 
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		config.MusicDirectory = getDefaultDir()
+		config.MusicDirectory = GetDefaultDir()
 		if err := SaveConfig(configFile, config); err != nil {
 			log.Fatalf("Error creating config file: %v", err)
 		}
@@ -30,7 +30,7 @@ func NewConfig() *Config {
 			log.Fatalf("Error loading config: %v", err)
 		}
 		if config.MusicDirectory == "" {
-			config.MusicDirectory = getDefaultDir()
+			config.MusicDirectory = GetDefaultDir()
 			if err := SaveConfig(configFile, config); err != nil {
 				log.Fatalf("Error saving new information: %v", err)
 			}
@@ -61,7 +61,7 @@ func (config *Config) SetDirectory(newDir string) error {
 	return SaveConfig(configFile, config)
 }
 
-func getDefaultDir() string {
+func GetDefaultDir() string {
 	lang := os.Getenv("LANG")
 	if strings.HasPrefix(lang, "es") {
 		return filepath.Join(os.Getenv("HOME"), "Música")
