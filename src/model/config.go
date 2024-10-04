@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"encoding/json"
 	"log"
+	"strings"
 )
 
 type Config struct {
@@ -19,14 +20,20 @@ func NewConfig() *Config {
 	config := &Config{}
 
 	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		_, err = os.Create(configFile)
-		if err != nil {
+		config.MusicDirectory = getDefaultDir()
+		if err := SaveConfig(configFile, config); err != nil {
 			log.Fatalf("Error creating config file: %v", err)
 		}
 	} else {
 		err := LoadConfig(configFile, config)
 		if err != nil {
 			log.Fatalf("Error loading config: %v", err)
+		}
+		if config.MusicDirectory == "" {
+			config.MusicDirectory = getDefaultDir()
+			if err := SaveConfig(configFile, config); err != nil {
+				log.Fatalf("Error saving new information: %v", err)
+			}
 		}
 	}
 	return config
@@ -52,4 +59,12 @@ func (config *Config) SetDirectory(newDir string) error {
 	config.MusicDirectory = newDir
 	configFile := filepath.Join(os.Getenv("HOME"), ".config", "MusicDB", "config.json")
 	return SaveConfig(configFile, config)
+}
+
+func getDefaultDir() string {
+	lang := os.Getenv("LANG")
+	if strings.HasPrefix(lang, "es") {
+		return filepath.Join(os.Getenv("HOME"), "Música")
+	}
+	return filepath.Join(os.Getenv("HOME"), "Music")
 }
