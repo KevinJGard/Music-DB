@@ -25,6 +25,7 @@ func main() {
 		log.Fatalf("Error traversing directory %s: %v", directory, err)
 	}
 	fmt.Println("MP3 files found:")
+	count := 1
 	for _, file := range files {
 		metadata, err := miner.MineMetadata(file)
 		if err != nil {
@@ -44,6 +45,8 @@ func main() {
 		track := metadata["Track"].(map[string]int)
 		fmt.Printf("Track: %d of %d \n", track["Number"], track["Total"])
 		fmt.Printf("Composer: %s \n", metadata["Composer"])
+		fmt.Printf("%d----------------------------------------------------------------------\n", count)
+		count++
 
 		if err := miner.ProcessFile(database, file); err != nil {
 			log.Printf("Error procesing file %s: %v", file, err)

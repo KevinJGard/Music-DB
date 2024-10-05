@@ -53,7 +53,7 @@ func TestNewDataBase(t *testing.T) {
 	assert.NoError(t, err, "Expected no error querying for 'in_group' table.")
     assert.Equal(t, 1, count, "Expected 'in_group' table to exist.")
     
-    dbFilePath := filepath.Join(tempDir, ".config", "MusicDB", "music.sqlite")
+    dbFilePath := filepath.Join(tempDir, ".local", "share", "MusicDB", "music.sqlite")
     _, err = os.Stat(dbFilePath)
     assert.NoError(t, err, "Database file should exist.")
     defer db.Db.Close()
@@ -118,6 +118,32 @@ func TestInsertAlbum(t *testing.T) {
 	assert.Equal(t, int64(1), id, "Expected one album to be inserted.")
 }
 
+func TestGetSongID(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	song := &model.Song{
+		PerformerID: 1,
+        AlbumID: 1,
+        Path: "/path/test/song1.mp3", 
+        Title: "song1.mp3", 
+        Track: 34, 
+        Year: 1901, 
+        Genre: "Pop", 
+	}
+
+	err := db.InsertSong(song)
+	assert.NoError(t, err, "Failed inserting song.")
+	id, err := db.GetSongID(song.PerformerID, song.AlbumID, song.Path, song.Title, song.Genre, song.Track, song.Year)
+	assert.NoError(t, err, "Expected no error while getting song ID.")
+	assert.NotZero(t, id, "Expected song ID to be greater than 0.")
+
+	noID, err := db.GetSongID(5, 3, "test/music/song.mp3", "song.mp3", "Rap", 5, 2014)
+	assert.NoError(t, err, "Expected no error while getting no-song ID.")
+	assert.Zero(t, noID, "Expected no-song ID to be 0.")
+}
+
 func TestGetPerformerID(t *testing.T) {
 	tempDir := t.TempDir()
 	os.Setenv("HOME", tempDir)
@@ -159,6 +185,29 @@ func TestGetAlbumID(t *testing.T) {
 	noID, err := db.GetAlbumID("No album",  1)
 	assert.NoError(t, err, "Expected no error while getting no-album ID.")
 	assert.Zero(t, noID, "Expected no-album ID to be 0.")
+}
+
+func TestInsertSongIfNotExists(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	song := &model.Song{
+		PerformerID: 1,
+        AlbumID: 1,
+        Path: "/path/test/song1.mp3", 
+        Title: "song1.mp3", 
+        Track: 34, 
+        Year: 1901, 
+        Genre: "Pop", 
+	}
+	songID, err := db.InsertSongIfNotExists(song.PerformerID, song.AlbumID, song.Path, song.Title, song.Genre, song.Track, song.Year)
+	assert.NoError(t, err, "Failed inserting new song.")
+	assert.NotZero(t, songID, "Expected song ID to be greater than 0.")
+
+	sameID, err := db.InsertSongIfNotExists(song.PerformerID, song.AlbumID, song.Path, song.Title, song.Genre, song.Track, song.Year)
+	assert.NoError(t, err, "Failed inserting new song.")
+	assert.Equal(t, songID, sameID, "Expected same ID for existing song.")
 }
 
 func TestInsertPerformerIfNotExists(t *testing.T) {

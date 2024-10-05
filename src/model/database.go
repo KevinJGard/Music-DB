@@ -13,7 +13,7 @@ type DataBase struct {
 }
 
 func NewDataBase() *DataBase {
-	dbDir := filepath.Join(os.Getenv("HOME"), ".config", "MusicDB")
+	dbDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "MusicDB")
 	os.MkdirAll(dbDir, os.ModePerm)
 	dbFile := filepath.Join(dbDir, "music.sqlite")
 
@@ -114,6 +114,16 @@ func (db *DataBase) InsertAlbum(album *Album) error {
 	return err
 }
 
+func (db *DataBase) GetSongID(performer, album int64, path, title, genre  string, track , year int) (int64, error) {
+	var id int64
+	query := `SELECT id_rola FROM rolas WHERE id_performer = ? AND id_album = ? AND path = ? AND title = ? AND track = ? AND year = ? AND genre = ?`
+    err := db.Db.QueryRow(query, performer, album, path, title, track, year, genre).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return id, err
+}
+
 func (db *DataBase) GetPerformerID(name string) (int64, error) {
 	var id int64
 	query := `SELECT id_performer FROM performers WHERE name = ?`
@@ -132,6 +142,30 @@ func (db *DataBase) GetAlbumID(album string, year int) (int64, error) {
 		return 0, nil
 	}
 	return id, err
+}
+
+
+func (db *DataBase) InsertSongIfNotExists(performer, album int64, path, title, genre  string, track , year int) (int64, error) {
+    id, err := db.GetSongID(performer, album, path, title, genre, track, year)
+    if err == nil && id != 0 {
+        return id, nil
+    }
+
+    song := Song{
+        PerformerID: performer,
+        AlbumID: album,
+        Path: path, 
+        Title: title, 
+        Track: track, 
+        Year: year, 
+        Genre: genre, 
+    }
+    err = db.InsertSong(&song)
+    if err != nil {
+        return 0, err
+    }
+    song.ID, err = db.GetSongID(song.PerformerID, song.AlbumID, song.Path, song.Title, song.Genre, song.Track, song.Year)
+    return song.ID, nil
 }
 
 func (db *DataBase) InsertPerformerIfNotExists(name string, performerType int) (int64, error) {

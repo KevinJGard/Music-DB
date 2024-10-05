@@ -107,7 +107,8 @@ func (miner *Miner) ProcessFile(db *DataBase, file string) error {
 		return err
 	}
 
-	albumID, err := db.InsertAlbumIfNotExists(metadata["Album"].(string), metadata["Year"].(int), file)
+	albumPath := filepath.Dir(file)
+	albumID, err := db.InsertAlbumIfNotExists(metadata["Album"].(string), metadata["Year"].(int), albumPath)
 	if err != nil {
 		return err
 	}
@@ -121,6 +122,7 @@ func (miner *Miner) ProcessFile(db *DataBase, file string) error {
 		Year: metadata["Year"].(int),
 		Genre: metadata["Genre"].(string),
 	}
+	_, err = db.InsertSongIfNotExists(song.PerformerID, song.AlbumID, song.Path, song.Title, song.Genre, song.Track, song.Year)
 
-	return db.InsertSong(&song)
+	return err
 }
