@@ -149,29 +149,41 @@ func createThemeButtons(myApp fyne.App) *fyne.Container {
 }
 
 func createMainMenu(myApp fyne.App, myWindow fyne.Window, mineMetadata func()) *fyne.MainMenu {
+	menuItemFull := fyne.NewMenuItem("Full screen", func() {
+		myWindow.SetFullScreen(!myWindow.FullScreen())
+	})
+	menuItemFull.Icon = theme.ViewFullScreenIcon()
+
+	menu := fyne.NewMenu("Screen", menuItemFull)
+
 	menuItemSettings := fyne.NewMenuItem("Settings", func() {
 		openSettingsWindow(myApp)
 	})
+	menuItemSettings.Icon = theme.SettingsIcon()
 	menuItemHelp := fyne.NewMenuItem("Help", func() {
 		url, _ := url.Parse("https://github.com/KevinJGard/MusicDB")
 		_ = myApp.OpenURL(url)
 	})
+	menuItemHelp.Icon = theme.HelpIcon()
 
-	menu := fyne.NewMenu("Options", menuItemSettings, menuItemHelp)
+	newMenu2 := fyne.NewMenu("Options", menuItemSettings, menuItemHelp)
 
 	menuItemSetPath := fyne.NewMenuItem("Set path", func() {
 		setPath(myWindow)
 	})
+	menuItemSetPath.Icon = theme.FolderIcon()
 	menuItemMineMetadata := fyne.NewMenuItem("Mine metadata", mineMetadata)
+	menuItemMineMetadata.Icon = theme.UploadIcon()
 
-	newMenu2 := fyne.NewMenu("Miner", menuItemSetPath, menuItemMineMetadata)
-	return fyne.NewMainMenu(menu, newMenu2)
+	newMenu3 := fyne.NewMenu("Miner", menuItemSetPath, menuItemMineMetadata)
+	return fyne.NewMainMenu(menu, newMenu2, newMenu3)
 }
 
 func setPath(myWindow fyne.Window) {
 	dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err == nil && uri != nil {
 			fmt.Println("Selected path:", uri.Path())
+			dialog.ShowInformation("Path", "Selected path that you can mine.", myWindow)
 		} else {
 			fmt.Println("Error selecting path:", err)
 		}
