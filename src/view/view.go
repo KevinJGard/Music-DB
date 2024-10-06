@@ -3,7 +3,6 @@ package view
 import (
 	"fmt"
 	"net/url"
-	"time"
 	"strconv"
 	"errors"
 	"fyne.io/fyne/v2"
@@ -14,9 +13,11 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/data/validation"
+	"github.com/KevinJGard/MusicDB/src/controller"
 )
 
 func Run_View() {
+	controller := controller.NewController()
 	var (
 		progress *widget.ProgressBar
 		progressContainer *fyne.Container
@@ -31,21 +32,31 @@ func Run_View() {
 	loading := widget.NewLabel("Getting metadata...")
 	loading.TextStyle = fyne.TextStyle{Monospace: true}
 	progressContainer = container.NewVBox(loading, progress,)
+	progressContainer.Hide()
 	mineMetadata := func() {
 		progress.SetValue(0) 
 		progressContainer.Show() 
 
 		go func() {
-			for i := 0.0; i <= 1.0; i += 0.1 {
-				time.Sleep(time.Millisecond * 500)
-				progress.SetValue(i)
+			err := controller.MineMetadata(
+				func(pro int) {
+					progress.SetValue(float64(pro) / 100.0)
+					myWindow.Content().Refresh()
+				}, 
+				func() {
+					dialog.ShowInformation("Completed", "Data was mined.", myWindow)
+					progressContainer.Hide()
+				},
+			)
+
+			if err != nil {
+				dialog.ShowError(err, myWindow)
+				progressContainer.Hide()
 			}
-			dialog.ShowInformation("Completed", "Data was mined.", myWindow)
-			progressContainer.Hide()
 		}()
 	}
 
-	menu := createMainMenu(myApp, myWindow, mineMetadata)
+	menu := createMainMenu(myApp, myWindow, mineMetadata, controller)
 	myWindow.SetMainMenu(menu)
 	cont := createListContainer()
 	contSouth := createMusicControlContainer()
@@ -56,7 +67,7 @@ func Run_View() {
 		cont,
 		container.NewCenter(progressContainer),
 	)
-	progressContainer.Hide()
+	
 	myWindow.SetContent(content)
 	myWindow.ShowAndRun()
 }
@@ -148,7 +159,7 @@ func createThemeButtons(myApp fyne.App) *fyne.Container {
 	return container.NewGridWithColumns(2, darkButton, lightButton)
 }
 
-func createMainMenu(myApp fyne.App, myWindow fyne.Window, mineMetadata func()) *fyne.MainMenu {
+func createMainMenu(myApp fyne.App, myWindow fyne.Window, mineMetadata func(), controller *controller.Controller) *fyne.MainMenu {
 	menuItemFull := fyne.NewMenuItem("Full screen", func() {
 		myWindow.SetFullScreen(!myWindow.FullScreen())
 	})
@@ -169,7 +180,7 @@ func createMainMenu(myApp fyne.App, myWindow fyne.Window, mineMetadata func()) *
 	newMenu2 := fyne.NewMenu("Options", menuItemSettings, menuItemHelp)
 
 	menuItemSetPath := fyne.NewMenuItem("Set path", func() {
-		setPath(myWindow)
+		setPath(myWindow, controller)
 	})
 	menuItemSetPath.Icon = theme.FolderIcon()
 	menuItemMineMetadata := fyne.NewMenuItem("Mine metadata", mineMetadata)
@@ -179,11 +190,15 @@ func createMainMenu(myApp fyne.App, myWindow fyne.Window, mineMetadata func()) *
 	return fyne.NewMainMenu(menu, newMenu2, newMenu3)
 }
 
-func setPath(myWindow fyne.Window) {
+func setPath(myWindow fyne.Window, controller *controller.Controller) {
 	dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err == nil && uri != nil {
 			fmt.Println("Selected path:", uri.Path())
-			dialog.ShowInformation("Path", "Selected path that you can mine.", myWindow)
+			if err := controller.SetMusicDirectory(uri.Path()); err != nil {
+				dialog.ShowError(err, myWindow)
+			} else {
+				dialog.ShowInformation("Path", "Selected path that you can mine.", myWindow)
+			}
 		} else {
 			fmt.Println("Error selecting path:", err)
 		}
