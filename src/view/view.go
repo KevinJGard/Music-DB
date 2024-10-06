@@ -3,7 +3,6 @@ package view
 import (
 	"fmt"
 	"net/url"
-	"strconv"
 	"errors"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -28,6 +27,7 @@ func Run_View() {
 	myWindow.Resize(fyne.NewSize(1000, 600))
 
 	searchContainer := createSearchContainer(myWindow)
+	cont, updateList := createListContainer(controller)
 	progress = widget.NewProgressBar()
 	loading := widget.NewLabel("Getting metadata...")
 	loading.TextStyle = fyne.TextStyle{Monospace: true}
@@ -46,6 +46,7 @@ func Run_View() {
 				func() {
 					dialog.ShowInformation("Completed", "Data was mined.", myWindow)
 					progressContainer.Hide()
+					updateList()
 				},
 			)
 
@@ -58,7 +59,6 @@ func Run_View() {
 
 	menu := createMainMenu(myApp, myWindow, mineMetadata, controller)
 	myWindow.SetMainMenu(menu)
-	cont := createListContainer()
 	contSouth := createMusicControlContainer()
 
 	content := container.New(layout.NewBorderLayout(searchContainer, contSouth, nil, nil),
@@ -205,16 +205,8 @@ func setPath(myWindow fyne.Window, controller *controller.Controller) {
 	}, myWindow).Show()
 }
 
-func createListContainer() *container.Split {
-	data := make([]string, 50)
-	for i := range data {
-		data[i] = "Test Item " + strconv.Itoa(i)
-	}
-
-	icon := widget.NewIcon(theme.FileAudioIcon())
-	label := widget.NewLabel("Select An Item From The List")
-	label.TextStyle = fyne.TextStyle{Bold: true, Italic: true}
-	hbox := container.NewHBox(icon, label)
+func createListContainer(controller *controller.Controller) (*container.Split, func()) {
+	data := make([]string, 0)
 
 	list := widget.NewList(
 		func() int {
@@ -227,6 +219,24 @@ func createListContainer() *container.Split {
 			item.(*fyne.Container).Objects[1].(*widget.Label).SetText(data[id])
 		},
 	)
+	
+	updateList := func() {
+		songs, err := controller.GetSongs()
+		if err == nil {
+			data = data[:0]
+			for _, song := range songs {
+				data = append(data, song.Title)
+			}
+		} else {
+			data = append(data, "Error loading songs")
+		}
+		list.Refresh()
+	}
+
+	icon := widget.NewIcon(theme.FileAudioIcon())
+	label := widget.NewLabel("Select An Item From The List")
+	label.TextStyle = fyne.TextStyle{Bold: true, Italic: true}
+	hbox := container.NewHBox(icon, label)
 
 	list.OnSelected = func(id widget.ListItemID) {
 		label.SetText(data[id])
@@ -236,8 +246,9 @@ func createListContainer() *container.Split {
 		label.SetText("Select An Item From The List")
 		icon.SetResource(nil)
 	}
+	updateList()
 
-	return container.NewHSplit(list, container.NewCenter(hbox))
+	return container.NewHSplit(list, container.NewCenter(hbox)), updateList
 }
 
 func createMusicControlContainer() *container.Split {

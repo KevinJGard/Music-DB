@@ -41,3 +41,22 @@ func (c *Controller) MineMetadata(updateProgress func(int), complete func()) err
 	complete()
 	return nil
 }
+
+func (c *Controller) GetSongs() ([]model.Song, error) {
+	var songs []model.Song
+	rows, err := c.DB.Db.Query("SELECT id_rola, id_performer, id_album, path, title, track, year, genre FROM rolas")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var song model.Song
+		if err := rows.Scan(&song.ID, &song.PerformerID, &song.AlbumID, &song.Path, &song.Title, &song.Track, &song.Year, &song.Genre); err != nil {
+			return nil, err
+		}
+		songs = append(songs, song)
+	}
+
+	return songs, nil
+}
