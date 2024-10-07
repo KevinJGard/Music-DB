@@ -204,3 +204,21 @@ func (db *DataBase) InsertAlbumIfNotExists(name string, year int, path string) (
 	album.ID, err = db.GetAlbumID(album.Name, album.Year)
 	return album.ID, nil
 }
+
+func (db *DataBase) GetPerformerName(performerID int64) (string, error) {
+	var name string
+	err := db.Db.QueryRow("SELECT name FROM performers WHERE id_performer = ?", performerID).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func (db *DataBase) GetAlbumName(albumID int64) (string, error) {
+	var name string
+	err := db.Db.QueryRow("SELECT name FROM albums WHERE id_album = ?", albumID).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}

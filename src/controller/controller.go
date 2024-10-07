@@ -55,6 +55,19 @@ func (c *Controller) GetSongs() ([]model.Song, error) {
 		if err := rows.Scan(&song.ID, &song.PerformerID, &song.AlbumID, &song.Path, &song.Title, &song.Track, &song.Year, &song.Genre); err != nil {
 			return nil, err
 		}
+
+		performerName, err := c.DB.GetPerformerName(song.PerformerID)
+		if err != nil {
+			return nil, err
+		}
+		albumName, err := c.DB.GetAlbumName(song.AlbumID)
+		if err != nil {
+			return nil, err
+		}
+
+		song.PerformerName = performerName
+		song.AlbumName = albumName
+
 		songs = append(songs, song)
 	}
 

@@ -27,7 +27,7 @@ func Run_View() {
 	myWindow.Resize(fyne.NewSize(1000, 600))
 
 	searchContainer := createSearchContainer(myWindow)
-	cont, updateList := createListContainer(controller)
+	cont, contSouth, updateList := createListContainer(controller, myWindow)
 	progress = widget.NewProgressBar()
 	loading := widget.NewLabel("Getting metadata...")
 	loading.TextStyle = fyne.TextStyle{Monospace: true}
@@ -59,7 +59,6 @@ func Run_View() {
 
 	menu := createMainMenu(myApp, myWindow, mineMetadata, controller)
 	myWindow.SetMainMenu(menu)
-	contSouth := createMusicControlContainer()
 
 	content := container.New(layout.NewBorderLayout(searchContainer, contSouth, nil, nil),
 		searchContainer,
@@ -205,7 +204,7 @@ func setPath(myWindow fyne.Window, controller *controller.Controller) {
 	}, myWindow).Show()
 }
 
-func createListContainer(controller *controller.Controller) (*container.Split, func()) {
+func createListContainer(controller *controller.Controller, myWindow fyne.Window) (*container.Split, *container.Split, func()) {
 	data := make([]string, 0)
 
 	list := widget.NewList(
@@ -237,22 +236,27 @@ func createListContainer(controller *controller.Controller) (*container.Split, f
 	label := widget.NewLabel("Select An Item From The List")
 	label.TextStyle = fyne.TextStyle{Bold: true, Italic: true}
 	hbox := container.NewHBox(icon, label)
+	titleEdit := widget.NewButtonWithIcon("Edit", theme.DocumentCreateIcon(), func() {
+		editInfo(myWindow, "title")
+	})
+	performerLabel := widget.NewLabel("Artist:  ")
+	performerEdit := widget.NewButtonWithIcon("Edit", theme.DocumentCreateIcon(), func() {fmt.Println("Edit Artist")})
+	performerCont := container.NewGridWithColumns(2, performerLabel, performerEdit)
+	albumLabel := widget.NewLabel("Album: ")
+	albumEdit := widget.NewButtonWithIcon("Edit", theme.DocumentCreateIcon(), func() {
+		editInfo(myWindow, "album")
+	})
+	albumCont := container.NewGridWithColumns(2, albumLabel, albumEdit)
+	trackLabel := widget.NewLabel("Track: ")
+	yearLabel := widget.NewLabel("Year: ")
+	genreLabel := widget.NewLabel("Genre: ")
+	detailsCont := container.NewVBox(titleEdit, widget.NewSeparator(), performerCont, widget.NewSeparator(), albumCont, widget.NewSeparator(), 
+				trackLabel, widget.NewSeparator(), yearLabel, widget.NewSeparator(), genreLabel, widget.NewSeparator())
+	detailsCont.Hide()
+	detailsContainer := container.NewVBox(hbox, detailsCont)
 
-	list.OnSelected = func(id widget.ListItemID) {
-		label.SetText(data[id])
-		icon.SetResource(theme.MediaMusicIcon())
-	}
-	list.OnUnselected = func(id widget.ListItemID) {
-		label.SetText("Select An Item From The List")
-		icon.SetResource(nil)
-	}
-	updateList()
-
-	return container.NewHSplit(list, container.NewCenter(hbox)), updateList
-}
-
-func createMusicControlContainer() *container.Split {
 	music := widget.NewLabel("Your Music.")
+	musicIcon := widget.NewIcon(theme.FileAudioIcon())
 	iconPlay := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() { fmt.Println("Play.") })
 	iconNext := widget.NewButtonWithIcon("", theme.MediaSkipNextIcon(), func() { fmt.Println("Next.") })
 	iconPrevious := widget.NewButtonWithIcon("", theme.MediaSkipPreviousIcon(), func() { fmt.Println("Previous.") })
@@ -262,8 +266,52 @@ func createMusicControlContainer() *container.Split {
 	iconPrevious.Disable()
 	iconStop.Disable()
 
+	yourMusic := container.NewHBox(musicIcon, music)
 	contentIcons := container.NewHBox(iconPrevious, iconPlay, iconNext)
 	contentIcons2 := container.NewVBox(contentIcons, iconStop)
 
-	return container.NewHSplit(music, container.NewCenter(contentIcons2))
+	list.OnSelected = func(id widget.ListItemID) {
+		songs, err := controller.GetSongs()
+		if err != nil {
+			dialog.ShowError(err, myWindow) 
+			return
+		}
+		song := songs[id]
+		label.SetText(song.Title)
+		music.SetText(song.Title)
+		icon.SetResource(theme.MediaMusicIcon())
+		musicIcon.SetResource(theme.MediaMusicIcon())
+		performerLabel.SetText("Artist: " + song.PerformerName)
+		albumLabel.SetText("Album: " + song.AlbumName)
+		trackLabel.SetText("Track: " + fmt.Sprintf("%d", song.Track))
+		yearLabel.SetText("Year: " + fmt.Sprintf("%d", song.Year))
+		genreLabel.SetText("Genre: " + song.Genre)
+		detailsCont.Show()
+	}
+	list.OnUnselected = func(id widget.ListItemID) {
+		label.SetText("Select An Item From The List")
+		icon.SetResource(nil)
+	}
+	updateList()
+
+	return container.NewHSplit(list, container.NewCenter(detailsContainer)), container.NewHSplit(container.NewCenter(yourMusic), container.NewCenter(contentIcons2)),updateList
+}
+
+func editInfo(myWindow fyne.Window, change string) {
+	name := widget.NewEntry()
+	name.SetPlaceHolder("New " + change)
+	name.Validator = validation.NewRegexp(`^[A-Za-z0-9_-]+$`, change + " can only contain letters, numbers, '_', and '-'")
+	items := []*widget.FormItem{
+		widget.NewFormItem("Name", name),
+	}
+	dialog.ShowForm("Edit " + change, "Confirm", "Cancel", items, func(b bool) {
+		if !b {
+			return
+		}
+		fmt.Println("Change made", name.Text)
+		fyne.CurrentApp().SendNotification(&fyne.Notification{
+			Title:   "Music Data Base",
+			Content: "Modified " + change + " : " + name.Text,
+		})
+	}, myWindow)
 }

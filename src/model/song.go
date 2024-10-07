@@ -9,4 +9,6 @@ type Song struct {
 	Track      int
 	Year       int
 	Genre      string
+	PerformerName string
+	AlbumName string
 }
