@@ -27,7 +27,7 @@ func Run_View() {
 	myWindow.Resize(fyne.NewSize(1000, 600))
 
 	searchContainer := createSearchContainer(myWindow)
-	cont, contSouth, updateList := createListContainer(controller, myWindow)
+	cont, contSouth, updateList := createListContainer(controller, myWindow, myApp)
 	progress = widget.NewProgressBar()
 	loading := widget.NewLabel("Getting metadata...")
 	loading.TextStyle = fyne.TextStyle{Monospace: true}
@@ -121,14 +121,14 @@ func openSettingsWindow(myApp fyne.App) {
 	})
 
 	form.OnSubmit = func() {
-			fmt.Println("Form submitted")
-			fyne.CurrentApp().SendNotification(&fyne.Notification{
-				Title:   "Music Data Base",
-				Content: "Hello " + name.Text,
-			})
-			editButton.Show()
-			form.Hide()
-		}
+		fmt.Println("Form submitted")
+		fyne.CurrentApp().SendNotification(&fyne.Notification{
+			Title:   "Music Data Base",
+			Content: "Hello " + name.Text,
+		})
+		editButton.Show()
+		form.Hide()
+	}
 
 	form.Append("Password", password)
 
@@ -204,7 +204,7 @@ func setPath(myWindow fyne.Window, controller *controller.Controller) {
 	}, myWindow).Show()
 }
 
-func createListContainer(controller *controller.Controller, myWindow fyne.Window) (*container.Split, *container.Split, func()) {
+func createListContainer(controller *controller.Controller, myWindow fyne.Window, myApp fyne.App) (*container.Split, *container.Split, func()) {
 	data := make([]string, 0)
 
 	list := widget.NewList(
@@ -236,22 +236,24 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 	label := widget.NewLabel("Select An Item From The List")
 	label.TextStyle = fyne.TextStyle{Bold: true, Italic: true}
 	hbox := container.NewHBox(icon, label)
-	titleEdit := widget.NewButtonWithIcon("Edit", theme.DocumentCreateIcon(), func() {
-		editInfo(myWindow, "title")
+	titleEdit := widget.NewButtonWithIcon("Edit Song", theme.DocumentCreateIcon(), func() {
+		openEditSongWindow(myApp)
 	})
 	performerLabel := widget.NewLabel("Artist:  ")
-	performerEdit := widget.NewButtonWithIcon("Edit", theme.DocumentCreateIcon(), func() {fmt.Println("Edit Artist")})
+	performerEdit := widget.NewButtonWithIcon("Edit P.", theme.DocumentCreateIcon(), func() {
+		openEditPerformerWindow(myApp)
+	})
 	performerCont := container.NewGridWithColumns(2, performerLabel, performerEdit)
 	albumLabel := widget.NewLabel("Album: ")
-	albumEdit := widget.NewButtonWithIcon("Edit", theme.DocumentCreateIcon(), func() {
-		editInfo(myWindow, "album")
+	albumEdit := widget.NewButtonWithIcon("Edit A.", theme.DocumentCreateIcon(), func() {
+		openEditAlbumWindow(myApp)
 	})
 	albumCont := container.NewGridWithColumns(2, albumLabel, albumEdit)
 	trackLabel := widget.NewLabel("Track: ")
 	yearLabel := widget.NewLabel("Year: ")
 	genreLabel := widget.NewLabel("Genre: ")
-	detailsCont := container.NewVBox(titleEdit, widget.NewSeparator(), performerCont, widget.NewSeparator(), albumCont, widget.NewSeparator(), 
-				trackLabel, widget.NewSeparator(), yearLabel, widget.NewSeparator(), genreLabel, widget.NewSeparator())
+	detailsCont := container.NewVBox(widget.NewSeparator(), performerCont, widget.NewSeparator(), albumCont, widget.NewSeparator(), 
+				trackLabel, widget.NewSeparator(), yearLabel, widget.NewSeparator(), genreLabel, widget.NewSeparator(), titleEdit)
 	detailsCont.Hide()
 	detailsContainer := container.NewVBox(hbox, detailsCont)
 
@@ -297,21 +299,267 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 	return container.NewHSplit(list, container.NewCenter(detailsContainer)), container.NewHSplit(container.NewCenter(yourMusic), container.NewCenter(contentIcons2)),updateList
 }
 
-func editInfo(myWindow fyne.Window, change string) {
-	name := widget.NewEntry()
-	name.SetPlaceHolder("New " + change)
-	name.Validator = validation.NewRegexp(`^[A-Za-z0-9_-]+$`, change + " can only contain letters, numbers, '_', and '-'")
-	items := []*widget.FormItem{
-		widget.NewFormItem("Name", name),
+func openEditSongWindow(myApp fyne.App) {
+	editS := myApp.NewWindow("Edit")
+	editS.SetIcon(theme.DocumentCreateIcon())
+	editS.Resize(fyne.NewSize(600, 500))
+
+	title := widget.NewEntry()
+	title.SetPlaceHolder("New Title")
+	title.Validator = validation.NewRegexp(`^[A-Za-z0-9_-]+$`, "Title can only contain letters, numbers, '_' and '-'")
+	track := widget.NewEntry()
+	track.SetPlaceHolder("Track number")
+	track.Validator = validation.NewRegexp(`^[0-9]+$`, "Track can only contain numbers.")
+	year := widget.NewEntry()
+	year.SetPlaceHolder("Year number")
+	year.Validator = validation.NewRegexp(`^[0-9]+$`, "Year can only contain numbers.")
+	genre := widget.NewEntry()
+	genre.SetPlaceHolder("New Genre")
+	genre.Validator = validation.NewRegexp(`^[A-Za-z]+$`, "Genre can only contain letters.")
+
+	form := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "Title", Widget: title, HintText: "Title change."},
+			{Text: "Track", Widget: track, HintText: "Track number change."},
+			{Text: "Year", Widget: year, HintText: "Year change."},
+			{Text: "Genre", Widget: genre, HintText: "Genre change."},
+		},
+		OnCancel: func() {
+			fmt.Println("Cancelled")
+			editS.Close()
+		},
+		OnSubmit: func() {
+			fmt.Println("Form submitted")
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Music Data Base",
+				Content: "Modified Song: " + title.Text + "\n" + track.Text + "\n" + year.Text + "\n" + genre.Text,
+			})
+			editS.Close()
+		},
 	}
-	dialog.ShowForm("Edit " + change, "Confirm", "Cancel", items, func(b bool) {
-		if !b {
-			return
+
+	editLabel := widget.NewLabelWithStyle("Edit Song", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	editIcon := widget.NewIcon(theme.DocumentCreateIcon())
+	north := container.NewHBox(editLabel, editIcon)
+	center := container.NewCenter(north)
+	editContent := container.New(layout.NewBorderLayout(center, nil, nil, nil),
+		center, form)
+
+	editS.SetContent(editContent)
+	editS.Show()
+}
+
+func openEditAlbumWindow(myApp fyne.App) {
+	editA := myApp.NewWindow("Edit")
+	editA.SetIcon(theme.DocumentCreateIcon())
+	editA.Resize(fyne.NewSize(600, 500))
+
+	name := widget.NewEntry()
+	name.SetPlaceHolder("New Name")
+	name.Validator = validation.NewRegexp(`^[A-Za-z0-9_-]+$`, "Name can only contain letters, numbers, '_' and '-'")
+	year := widget.NewEntry()
+	year.SetPlaceHolder("Year number")
+	year.Validator = validation.NewRegexp(`^[0-9]+$`, "Year can only contain numbers.")
+
+	form := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "Name", Widget: name, HintText: "Name change."},
+			{Text: "Year", Widget: year, HintText: "Year change."},
+		},
+		OnCancel: func() {
+			fmt.Println("Cancelled")
+			editA.Close()
+		},
+		OnSubmit: func() {
+			fmt.Println("Form submitted")
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Music Data Base",
+				Content: "Modified Album : " + name.Text + " and " + year.Text,
+			})
+			editA.Close()
+		},
+	}
+
+	editLabel := widget.NewLabelWithStyle("Edit Album", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	editIcon := widget.NewIcon(theme.DocumentCreateIcon())
+	north := container.NewHBox(editLabel, editIcon)
+	center := container.NewCenter(north)
+	editContent := container.New(layout.NewBorderLayout(center, nil, nil, nil),
+		center, form)
+
+	editA.SetContent(editContent)
+	editA.Show()
+}
+
+func openEditPerformerWindow(myApp fyne.App) {
+	var (
+		person *widget.Check
+		group *widget.Check
+		inGroup *widget.Check
+		noDef *widget.Check
+	)
+	editP := myApp.NewWindow("Edit Performer")
+	editP.SetIcon(theme.DocumentCreateIcon())
+	editP.Resize(fyne.NewSize(700, 600))
+
+	name := widget.NewEntry()
+	name.SetPlaceHolder("Stage Name")
+	name.Validator = validation.NewRegexp(`^[A-Za-z0-9_-]+$`, "Name can only contain letters, numbers, '_' and '-'")
+	name.Disable()
+	realName := widget.NewEntry()
+	realName.SetPlaceHolder("Stage Name")
+	realName.Validator = validation.NewRegexp(`^[A-Za-z]+$`, "Name can only contain letters.")
+	realName.Disable()
+	birth := widget.NewEntry()
+	birth.SetPlaceHolder("Birth date")
+	birth.Validator = validation.NewRegexp(`^[0-9]+$`, "Date can only contain numbers.")
+	birth.Disable()
+	death := widget.NewEntry()
+	death.SetPlaceHolder("Death date")
+	death.Validator = validation.NewRegexp(`^[0-9]+$`, "Date can only contain numbers.")
+	death.Disable()
+	person = widget.NewCheck("Define as a person", func(b bool) {
+		if b {
+			name.Enable()
+			realName.Enable()
+			birth.Enable()
+			death.Enable()
+			group.Disable()
+			inGroup.Enable()
+		} else {
+			name.Disable()
+			realName.Disable()
+			birth.Disable()
+			death.Disable()
+			group.Enable()
+			inGroup.Disable()
 		}
-		fmt.Println("Change made", name.Text)
-		fyne.CurrentApp().SendNotification(&fyne.Notification{
-			Title:   "Music Data Base",
-			Content: "Modified " + change + " : " + name.Text,
-		})
-	}, myWindow)
+	})
+	nameInG := widget.NewEntry()
+	nameInG.SetPlaceHolder("Group name")
+	nameInG.Disable()
+	inGroup = widget.NewCheck("Put it in a group", func(b bool) {
+		if b {
+			nameInG.Enable()
+		} else {
+			nameInG.Disable()
+		}
+	})
+	inGroup.Disable()
+	nameG := widget.NewEntry()
+	nameG.SetPlaceHolder("Name")
+	nameG.Validator = validation.NewRegexp(`^[A-Za-z]+$`, "Name can only contain letters.")
+	nameG.Disable()
+	start := widget.NewEntry()
+	start.SetPlaceHolder("Start date")
+	start.Validator = validation.NewRegexp(`^[0-9]+$`, "Date can only contain numbers.")
+	start.Disable()
+	end := widget.NewEntry()
+	end.SetPlaceHolder("End date")
+	end.Validator = validation.NewRegexp(`^[0-9]+$`, "Date can only contain numbers.")
+	end.Disable()
+	group = widget.NewCheck("Define as a group", func(b bool) {
+		if b {
+			nameG.Enable()
+			start.Enable()
+			end.Enable()
+			person.Disable()
+		} else {
+			nameG.Disable()
+			start.Disable()
+			end.Disable()
+			person.Enable()
+		}
+	})
+	newName := widget.NewEntry()
+	newName.SetPlaceHolder("Name")
+	newName.Validator = validation.NewRegexp(`^[A-Za-z]+$`, "Name can only contain letters.")
+	newName.Disable()
+	noDef = widget.NewCheck("No def", func(b bool) {
+		if b{
+			newName.Enable()
+			group.Disable()
+			person.Disable()
+		} else {
+			newName.Disable()
+			group.Enable()
+			person.Enable()
+		}
+	})
+
+	form := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "Stage name", Widget: name, HintText: "Put a name."},
+			{Text: "Real name", Widget: realName, HintText: "Put a name."},
+			{Text: "Birth date", Widget: birth, HintText: "Put a birth date."},
+			{Text: "death date", Widget: death, HintText: "Put a death date. 0 if alive."},
+			{Text: "Group", Widget: nameInG, HintText: "Enter a name of an existing group."},
+		},
+		OnCancel: func() {
+			fmt.Println("Cancelled")
+			editP.Close()
+		},
+		OnSubmit: func() {
+			fmt.Println("Form submitted")
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Music Data Base",
+				Content: "Modified Performer : " + name.Text + " , " + realName.Text + " , " + birth.Text + " and " + death.Text,
+			})
+			editP.Close()
+		},
+	}
+	form.Append("Person", person)
+	form.Append("In a Group", inGroup)
+
+	form2 := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "Group name", Widget: nameG, HintText: "Put a name."},
+			{Text: "Start name", Widget: start, HintText: "Put a start date."},
+			{Text: "End date", Widget: end, HintText: "Put a end date. 0 if alive"},
+		},
+		OnCancel: func() {
+			fmt.Println("Cancelled")
+			editP.Close()
+		},
+		OnSubmit: func() {
+			fmt.Println("Form submitted")
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Music Data Base",
+				Content: "Modified Performer : " + nameG.Text + " , " + start.Text + " and " + end.Text,
+			})
+			editP.Close()
+		},
+	}
+	form2.Append("Group", group)
+
+	form3 := &widget.Form{
+		Items: []*widget.FormItem{
+			{Text: "New Name", Widget: newName, HintText: "Put a new name"},
+		},
+		OnCancel: func() {
+			fmt.Println("Cancelled")
+			editP.Close()
+		},
+		OnSubmit: func() {
+			fmt.Println("Form submitted")
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "Music Data Base",
+				Content: "Modified Performer : " + newName.Text,
+			})
+			editP.Close()
+		},
+	}
+	form3.Append("Undefined", noDef)
+
+	forms := container.NewVBox(form2, widget.NewSeparator(), form3)
+
+	editLabel := widget.NewLabelWithStyle("Edit Performer", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	editIcon := widget.NewIcon(theme.DocumentCreateIcon())
+	north := container.NewHBox(editLabel, editIcon)
+	center := container.NewCenter(north)
+	editContent := container.New(layout.NewBorderLayout(center, nil, nil, nil),
+		center, container.NewHSplit(form, forms))
+
+	editP.SetContent(editContent)
+	editP.Show()
 }
