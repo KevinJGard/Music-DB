@@ -234,3 +234,77 @@ func (db *DataBase) UpdateAlbum(idAlbum int64, newName string, newYear int) erro
 	_, err := db.Db.Exec(query, newName,newYear, idAlbum)
 	return err
 }
+
+func (db *DataBase) UpdatePerformer(idPerformer int64, typePerf int, newName string) error {
+	query := `UPDATE performers SET id_type = ?, name = ? WHERE id_performer = ?`
+	_, err := db.Db.Exec(query, typePerf, newName, idPerformer)
+	return err
+}
+
+func (db *DataBase) UpdateNamePerformer(idPerformer int64, newName string) error {
+	query := `UPDATE performers SET name = ? WHERE id_performer = ?`
+	_, err := db.Db.Exec(query, newName, idPerformer)
+	return err
+}
+
+func (db *DataBase) DefinePerson(stageName, realName, birthDate, deathDate string) error {
+	query := `INSERT INTO persons (stage_name, real_name, birth_date, death_date) 
+              VALUES (?, ?, ?, ?)`
+	_, err := db.Db.Exec(query, stageName, realName, birthDate, deathDate)
+	return err
+}
+
+func (db *DataBase) GetPersonID(stageName, realName, birthDate, deathDate string) (int64, error) {
+	var id int64
+	query := `SELECT id_person FROM persons WHERE stage_name = ? AND real_name = ? AND birth_date = ? AND death_date = ?`
+	err := db.Db.QueryRow(query, stageName, realName, birthDate, deathDate).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return id, err
+}
+
+func (db *DataBase) InsertPersonIfNotExists(stageName, realName, birthDate, deathDate string) (int64, error) {
+	id, err := db.GetPersonID(stageName, realName, birthDate, deathDate)
+	if err == nil && id != 0 {
+		return id, nil
+	}
+
+	err = db.DefinePerson(stageName, realName, birthDate, deathDate)
+	if err != nil {
+		return 0, err
+	}
+	personID, err := db.GetPersonID(stageName, realName, birthDate, deathDate)
+	return personID, nil
+}
+
+func (db *DataBase) DefineGroup(name, startDate, endDate string) error {
+	query := `INSERT INTO groups (name, start_date, end_date) 
+              VALUES (?, ?, ?)`
+	_, err := db.Db.Exec(query, name, startDate, endDate)
+	return err
+}
+
+func (db *DataBase) GetGroupID(name, startDate, endDate string) (int64, error) {
+	var id int64
+	query := `SELECT id_group FROM groups WHERE name = ? AND start_date = ? AND end_date = ?`
+	err := db.Db.QueryRow(query, name, startDate, endDate).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return id, err
+}
+
+func (db *DataBase) InsertGroupIfNotExists(name, startDate, endDate string) (int64, error) {
+	id, err := db.GetGroupID(name, startDate, endDate)
+	if err == nil && id != 0 {
+		return id, nil
+	}
+
+	err = db.DefineGroup(name, startDate, endDate)
+	if err != nil {
+		return 0, err
+	}
+	groupID, err := db.GetGroupID(name, startDate, endDate)
+	return groupID, nil
+}

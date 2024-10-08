@@ -83,3 +83,28 @@ func (c *Controller) EditAlbum(idAlbum int64, newName string, newYear int) error
 	err := c.DB.UpdateAlbum(idAlbum, newName, newYear)
 	return err
 }
+
+func (c *Controller) DefPerson(idPerf int64, stageName, realName, birthDate, deathDate string) error {
+	err := c.DB.UpdatePerformer(idPerf, 0, stageName)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.DB.InsertPersonIfNotExists(stageName, realName, birthDate, deathDate)
+	return err
+}
+
+func (c *Controller) DefGroup(idPerf int64, name, startDate, endDate string) error {
+	err := c.DB.UpdatePerformer(idPerf, 1, name)
+	if err != nil {
+		return err
+	}
+
+	_, err = c.DB.InsertGroupIfNotExists(name, startDate, endDate)
+	return err
+}
+
+func (c *Controller) EditPerf(idPerf int64, newName string) error {
+	err := c.DB.UpdateNamePerformer(idPerf, newName)
+	return err
+}

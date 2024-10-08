@@ -209,6 +209,7 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 	var (
 		songEdit *widget.Button
 		albumEdit *widget.Button
+		performerEdit *widget.Button
 	)
 	data := make([]string, 0)
 
@@ -243,9 +244,7 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 	hbox := container.NewHBox(icon, label)
 	songEdit = widget.NewButtonWithIcon("Edit Song", theme.DocumentCreateIcon(), nil)
 	performerLabel := widget.NewLabel("Artist:  ")
-	performerEdit := widget.NewButtonWithIcon("Edit P.", theme.DocumentCreateIcon(), func() {
-		openEditPerformerWindow(myApp)
-	})
+	performerEdit = widget.NewButtonWithIcon("Edit P.", theme.DocumentCreateIcon(), nil)
 	performerCont := container.NewGridWithColumns(2, performerLabel, performerEdit)
 	albumLabel := widget.NewLabel("Album: ")
 	albumEdit = widget.NewButtonWithIcon("Edit A.", theme.DocumentCreateIcon(), nil)
@@ -296,6 +295,9 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 		albumEdit.OnTapped = func() {
 			openEditAlbumWindow(myApp, myWindow, controller, song.AlbumID)
 		}
+		performerEdit.OnTapped = func() {
+			openEditPerformerWindow(myApp, myWindow, controller, song.PerformerID)
+		}
 	}
 	list.OnUnselected = func(id widget.ListItemID) {
 		label.SetText("Select An Item From The List")
@@ -344,7 +346,7 @@ func openEditSongWindow(myApp fyne.App, myWindow fyne.Window, controller *contro
 			} else {
 				fyne.CurrentApp().SendNotification(&fyne.Notification{
 					Title:   "Music Data Base",
-					Content: "Modified Song: " + title.Text + "\n" + track.Text + "\n" + year.Text + "\n" + genre.Text,
+					Content: "Modified Song: " + title.Text + ".\n Track: " + track.Text + ".\n Year:" + year.Text + ".\n Genre: " + genre.Text,
 				})
 				updateList()
 			}
@@ -392,7 +394,7 @@ func openEditAlbumWindow(myApp fyne.App, myWindow fyne.Window, controller *contr
 			} else {
 				fyne.CurrentApp().SendNotification(&fyne.Notification{
 					Title:   "Music Data Base",
-					Content: "Modified Album : " + name.Text + " and " + year.Text,
+					Content: "Modified Album: " + name.Text + ".\n Year: " + year.Text,
 				})
 			}
 			editA.Close()
@@ -410,7 +412,7 @@ func openEditAlbumWindow(myApp fyne.App, myWindow fyne.Window, controller *contr
 	editA.Show()
 }
 
-func openEditPerformerWindow(myApp fyne.App) {
+func openEditPerformerWindow(myApp fyne.App, myWindow fyne.Window, controller *controller.Controller, id int64) {
 	var (
 		person *widget.Check
 		group *widget.Check
@@ -524,10 +526,14 @@ func openEditPerformerWindow(myApp fyne.App) {
 		},
 		OnSubmit: func() {
 			fmt.Println("Form submitted")
-			fyne.CurrentApp().SendNotification(&fyne.Notification{
-				Title:   "Music Data Base",
-				Content: "Modified Performer : " + name.Text + " , " + realName.Text + " , " + birth.Text + " and " + death.Text,
-			})
+			if err := controller.DefPerson(id, name.Text, realName.Text, birth.Text, death.Text); err != nil {
+				dialog.ShowError(err, myWindow)
+			} else {
+				fyne.CurrentApp().SendNotification(&fyne.Notification{
+					Title:   "Music Data Base",
+					Content: "Modified Performer: " + name.Text + ".\n Real name: " + realName.Text + ".\n Birth date: " + birth.Text + ".\n Death date: " + death.Text,
+				})
+			}
 			editP.Close()
 		},
 	}
@@ -537,7 +543,7 @@ func openEditPerformerWindow(myApp fyne.App) {
 	form2 := &widget.Form{
 		Items: []*widget.FormItem{
 			{Text: "Group name", Widget: nameG, HintText: "Put a name."},
-			{Text: "Start name", Widget: start, HintText: "Put a start date."},
+			{Text: "Start date", Widget: start, HintText: "Put a start date."},
 			{Text: "End date", Widget: end, HintText: "Put a end date. 0 if alive"},
 		},
 		OnCancel: func() {
@@ -546,10 +552,14 @@ func openEditPerformerWindow(myApp fyne.App) {
 		},
 		OnSubmit: func() {
 			fmt.Println("Form submitted")
-			fyne.CurrentApp().SendNotification(&fyne.Notification{
-				Title:   "Music Data Base",
-				Content: "Modified Performer : " + nameG.Text + " , " + start.Text + " and " + end.Text,
-			})
+			if err := controller.DefGroup(id, nameG.Text, start.Text, end.Text); err != nil {
+				dialog.ShowError(err, myWindow)
+			} else {
+				fyne.CurrentApp().SendNotification(&fyne.Notification{
+					Title:   "Music Data Base",
+					Content: "Modified Performer: " + nameG.Text + ".\n Start date: " + start.Text + ".\n End date: " + end.Text,
+				})
+			}
 			editP.Close()
 		},
 	}
@@ -565,10 +575,14 @@ func openEditPerformerWindow(myApp fyne.App) {
 		},
 		OnSubmit: func() {
 			fmt.Println("Form submitted")
-			fyne.CurrentApp().SendNotification(&fyne.Notification{
-				Title:   "Music Data Base",
-				Content: "Modified Performer : " + newName.Text,
-			})
+			if err := controller.EditPerf(id, newName.Text); err != nil {
+				dialog.ShowError(err, myWindow)
+			} else {
+				fyne.CurrentApp().SendNotification(&fyne.Notification{
+					Title:   "Music Data Base",
+					Content: "Modified Performer: " + newName.Text,
+				})
+			}
 			editP.Close()
 		},
 	}
