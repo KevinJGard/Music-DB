@@ -334,4 +334,167 @@ func TestUpdateAlbum(t *testing.T) {
 	id, err := db.GetAlbumID("Test name album", 2003)
 	assert.NoError(t, err, "Expected no error while getting album ID.")
 	assert.Equal(t, int64(1), id, "Expected same album id.")
+
+	sameName, err := db.GetAlbumName(1)
+	assert.NoError(t, err, "Expected no error while getting album name")
+	assert.Equal(t, "Test name album", sameName, "Expected album name to match.")
+}
+
+func TestUpdatePerformer(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	performer := &model.Performer{
+		Type: 1,
+		Name: "Existing performer",
+	}
+
+	err := db.InsertPerformer(performer)
+	assert.NoError(t, err, "Failed inserting performer.")
+	err = db.UpdatePerformer(1, 2, "New name")
+	assert.NoError(t, err, "Expected no error while editing performer.")
+
+	id, err := db.GetPerformerID("New name")
+	assert.NoError(t, err, "Expected no error while getting performer ID.")
+	assert.Equal(t, int64(1), id, "Expected same performer id.")
+
+	sameName, err := db.GetPerformerName(1)
+	assert.NoError(t, err, "Expected no error while getting performer name")
+	assert.Equal(t, "New name", sameName, "Expected performer name to match.")
+}
+
+func TestUpdateNamePerformer(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	performer := &model.Performer{
+		Type: 1,
+		Name: "Existing performer",
+	}
+
+	err := db.InsertPerformer(performer)
+	assert.NoError(t, err, "Failed inserting performer.")
+	err = db.UpdateNamePerformer(1, "New name")
+	assert.NoError(t, err, "Expected no error while editing performer.")
+
+	id, err := db.GetPerformerID("New name")
+	assert.NoError(t, err, "Expected no error while getting performer ID.")
+	assert.Equal(t, int64(1), id, "Expected same performer id.")
+
+	sameName, err := db.GetPerformerName(1)
+	assert.NoError(t, err, "Expected no error while getting performer name")
+	assert.Equal(t, "New name", sameName, "Expected performer name to match.")
+}
+
+func TestDefinePerson(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	const stageName = "Stage Name"
+	const realName = "Real Name"
+	const birthDate = "1945"
+	const deathDate = "2011"
+
+	err := db.DefinePerson(stageName, realName, birthDate, deathDate)
+	assert.NoError(t, err, "Failed inserting person.")
+	id, err := db.GetPersonID(stageName, realName, birthDate, deathDate)
+	assert.NoError(t, err, "Expected no error while counting persons.")
+	assert.Equal(t, int64(1), id, "Expected one person to be inserted.")
+}
+
+func TestGetPersonID(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	const stageName = "Stage Name"
+	const realName = "Real Name"
+	const birthDate = "1945"
+	const deathDate = "2011"
+
+	err := db.DefinePerson(stageName, realName, birthDate, deathDate)
+	assert.NoError(t, err, "Failed inserting person.")
+	id, err := db.GetPersonID(stageName, realName, birthDate, deathDate)
+	assert.NoError(t, err, "Expected no error while getting person ID.")
+	assert.NotZero(t, id, "Expected person ID to be greater than 0.")
+
+	noID, err := db.GetPersonID("No Person", "No Person Name", "2000", "0")
+	assert.NoError(t, err, "Expected no error while getting no-person ID.")
+	assert.Zero(t, noID, "Expected no-person ID to be 0.")
+}
+
+func TestInsertPersonIfNotExists(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	const stageName = "Stage Name"
+	const realName = "Real Name"
+	const birthDate = "1945"
+	const deathDate = "2011"
+
+	personID, err := db.InsertPersonIfNotExists(stageName, realName, birthDate, deathDate)
+	assert.NoError(t, err, "Failed inserting new person.")
+	assert.NotZero(t, personID, "Expected person ID to be greater than 0.")
+
+	sameID, err := db.InsertPersonIfNotExists(stageName, realName, birthDate, deathDate)
+	assert.NoError(t, err, "Failed inserting person.")
+	assert.Equal(t, personID, sameID, "Expected same ID for existing person.")
+}
+
+func TestDefineGroup(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	const name = "Name Group"
+	const startDate = "2006"
+	const endDate = "2019"
+
+	err := db.DefineGroup(name, startDate, endDate)
+	assert.NoError(t, err, "Failed inserting group.")
+	id, err := db.GetGroupID(name, startDate, endDate)
+	assert.NoError(t, err, "Expected no error while counting groups.")
+	assert.Equal(t, int64(1), id, "Expected one group to be inserted.")
+}
+
+func TestGetGroupID(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	const name = "Name Group"
+	const startDate = "2006"
+	const endDate = "2019"
+
+	err := db.DefineGroup(name, startDate, endDate)
+	assert.NoError(t, err, "Failed inserting group.")
+	id, err := db.GetGroupID(name, startDate, endDate)
+	assert.NoError(t, err, "Expected no error while getting group ID.")
+	assert.NotZero(t, id, "Expected group ID to be greater than 0.")
+
+	noID, err := db.GetGroupID("No Group", "2000", "0")
+	assert.NoError(t, err, "Expected no error while getting no-group ID.")
+	assert.Zero(t, noID, "Expected no-group ID to be 0.")
+}
+
+func TestInsertGroupIfNotExists(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	const name = "Name Group"
+	const startDate = "2006"
+	const endDate = "2019"
+
+	groupID, err := db.InsertGroupIfNotExists(name, startDate, endDate)
+	assert.NoError(t, err, "Failed inserting new group.")
+	assert.NotZero(t, groupID, "Expected group ID to be greater than 0.")
+
+	sameID, err := db.InsertGroupIfNotExists(name, startDate, endDate)
+	assert.NoError(t, err, "Failed inserting group.")
+	assert.Equal(t, groupID, sameID, "Expected same ID for existing group.")
 }
