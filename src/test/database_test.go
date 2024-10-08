@@ -289,3 +289,49 @@ func TestGetAlbumName(t *testing.T) {
 	assert.Error(t, err, "Expected no error while getting no-album name.")
 	assert.Empty(t, noName, "Expected no-album name to be empty.")
 }
+
+func TestUpdateSong(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	song := &model.Song{
+		PerformerID: 1,
+        AlbumID: 1,
+        Path: "/path/test/song1.mp3", 
+        Title: "song1.mp3", 
+        Track: 34, 
+        Year: 1901, 
+        Genre: "Pop", 
+	}
+
+	err := db.InsertSong(song)
+	assert.NoError(t, err, "Failed inserting song.")
+	err = db.UpdateSong(1, "Test Title", "Jazz", 25, 2005)
+	assert.NoError(t, err, "Expected no error while editing song.")
+
+	id, err := db.GetSongID(song.PerformerID, song.AlbumID, song.Path, "Test Title", "Jazz", 25, 2005)
+	assert.NoError(t, err, "Expected no error while getting song ID.")
+	assert.Equal(t, int64(1), id, "Expected same song id.")
+}
+
+func TestUpdateAlbum(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	album := &model.Album{
+		Path: "/path/test/song1.mp3",
+		Name: "Test Album",
+		Year: 1945,
+	}
+
+	err := db.InsertAlbum(album)
+	assert.NoError(t, err, "Failed inserting album.")
+	err = db.UpdateAlbum(1, "Test name album", 2003)
+	assert.NoError(t, err, "Expected no error while editing album.")
+
+	id, err := db.GetAlbumID("Test name album", 2003)
+	assert.NoError(t, err, "Expected no error while getting album ID.")
+	assert.Equal(t, int64(1), id, "Expected same album id.")
+}
