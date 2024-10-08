@@ -222,3 +222,15 @@ func (db *DataBase) GetAlbumName(albumID int64) (string, error) {
 	}
 	return name, nil
 }
+
+func (db *DataBase) UpdateSong(idRola int64, newTitle, newGenre string, newTrack, newYear int) error {
+	query := `UPDATE rolas SET title = ?, track = ?, year = ?, genre = ? WHERE id_rola = ?`
+	_, err := db.Db.Exec(query, newTitle, newTrack, newYear, newGenre, idRola)
+	return err
+}
+
+func (db *DataBase) UpdateAlbum(idAlbum int64, newName string, newYear int) error {
+	query := `UPDATE albums SET name = ?, year = ? WHERE id_album = ?`
+	_, err := db.Db.Exec(query, newName,newYear, idAlbum)
+	return err
+}

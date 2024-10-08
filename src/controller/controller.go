@@ -44,7 +44,7 @@ func (c *Controller) MineMetadata(updateProgress func(int), complete func()) err
 
 func (c *Controller) GetSongs() ([]model.Song, error) {
 	var songs []model.Song
-	rows, err := c.DB.Db.Query("SELECT id_rola, id_performer, id_album, path, title, track, year, genre FROM rolas")
+	rows, err := c.DB.Db.Query("SELECT * FROM rolas")
 	if err != nil {
 		return nil, err
 	}
@@ -72,4 +72,14 @@ func (c *Controller) GetSongs() ([]model.Song, error) {
 	}
 
 	return songs, nil
+}
+
+func (c *Controller) EditSong(idRola int64, newTitle, newGenre string, newTrack, newYear int) error {
+	err := c.DB.UpdateSong(idRola, newTitle, newGenre, newTrack, newYear)
+	return err
+}
+
+func (c *Controller) EditAlbum(idAlbum int64, newName string, newYear int) error {
+	err := c.DB.UpdateAlbum(idAlbum, newName, newYear)
+	return err
 }

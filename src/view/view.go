@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"errors"
+	"strconv"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/widget"
@@ -205,6 +206,10 @@ func setPath(myWindow fyne.Window, controller *controller.Controller) {
 }
 
 func createListContainer(controller *controller.Controller, myWindow fyne.Window, myApp fyne.App) (*container.Split, *container.Split, func()) {
+	var (
+		songEdit *widget.Button
+		albumEdit *widget.Button
+	)
 	data := make([]string, 0)
 
 	list := widget.NewList(
@@ -236,24 +241,20 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 	label := widget.NewLabel("Select An Item From The List")
 	label.TextStyle = fyne.TextStyle{Bold: true, Italic: true}
 	hbox := container.NewHBox(icon, label)
-	titleEdit := widget.NewButtonWithIcon("Edit Song", theme.DocumentCreateIcon(), func() {
-		openEditSongWindow(myApp)
-	})
+	songEdit = widget.NewButtonWithIcon("Edit Song", theme.DocumentCreateIcon(), nil)
 	performerLabel := widget.NewLabel("Artist:  ")
 	performerEdit := widget.NewButtonWithIcon("Edit P.", theme.DocumentCreateIcon(), func() {
 		openEditPerformerWindow(myApp)
 	})
 	performerCont := container.NewGridWithColumns(2, performerLabel, performerEdit)
 	albumLabel := widget.NewLabel("Album: ")
-	albumEdit := widget.NewButtonWithIcon("Edit A.", theme.DocumentCreateIcon(), func() {
-		openEditAlbumWindow(myApp)
-	})
+	albumEdit = widget.NewButtonWithIcon("Edit A.", theme.DocumentCreateIcon(), nil)
 	albumCont := container.NewGridWithColumns(2, albumLabel, albumEdit)
 	trackLabel := widget.NewLabel("Track: ")
 	yearLabel := widget.NewLabel("Year: ")
 	genreLabel := widget.NewLabel("Genre: ")
 	detailsCont := container.NewVBox(widget.NewSeparator(), performerCont, widget.NewSeparator(), albumCont, widget.NewSeparator(), 
-				trackLabel, widget.NewSeparator(), yearLabel, widget.NewSeparator(), genreLabel, widget.NewSeparator(), titleEdit)
+				trackLabel, widget.NewSeparator(), yearLabel, widget.NewSeparator(), genreLabel, widget.NewSeparator(), songEdit)
 	detailsCont.Hide()
 	detailsContainer := container.NewVBox(hbox, detailsCont)
 
@@ -289,6 +290,12 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 		yearLabel.SetText("Year: " + fmt.Sprintf("%d", song.Year))
 		genreLabel.SetText("Genre: " + song.Genre)
 		detailsCont.Show()
+		songEdit.OnTapped = func() {
+			openEditSongWindow(myApp, myWindow, controller, song.ID, updateList)
+		}
+		albumEdit.OnTapped = func() {
+			openEditAlbumWindow(myApp, myWindow, controller, song.AlbumID)
+		}
 	}
 	list.OnUnselected = func(id widget.ListItemID) {
 		label.SetText("Select An Item From The List")
@@ -299,7 +306,7 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 	return container.NewHSplit(list, container.NewCenter(detailsContainer)), container.NewHSplit(container.NewCenter(yourMusic), container.NewCenter(contentIcons2)),updateList
 }
 
-func openEditSongWindow(myApp fyne.App) {
+func openEditSongWindow(myApp fyne.App, myWindow fyne.Window, controller *controller.Controller, id int64, updateList func()) {
 	editS := myApp.NewWindow("Edit")
 	editS.SetIcon(theme.DocumentCreateIcon())
 	editS.Resize(fyne.NewSize(600, 500))
@@ -330,10 +337,17 @@ func openEditSongWindow(myApp fyne.App) {
 		},
 		OnSubmit: func() {
 			fmt.Println("Form submitted")
-			fyne.CurrentApp().SendNotification(&fyne.Notification{
-				Title:   "Music Data Base",
-				Content: "Modified Song: " + title.Text + "\n" + track.Text + "\n" + year.Text + "\n" + genre.Text,
-			})
+			trackNum, _ := strconv.Atoi(track.Text)
+			yearNum, _ := strconv.Atoi(year.Text)
+			if err := controller.EditSong(id, title.Text, genre.Text, trackNum, yearNum); err != nil {
+				dialog.ShowError(err, myWindow)
+			} else {
+				fyne.CurrentApp().SendNotification(&fyne.Notification{
+					Title:   "Music Data Base",
+					Content: "Modified Song: " + title.Text + "\n" + track.Text + "\n" + year.Text + "\n" + genre.Text,
+				})
+				updateList()
+			}
 			editS.Close()
 		},
 	}
@@ -349,7 +363,7 @@ func openEditSongWindow(myApp fyne.App) {
 	editS.Show()
 }
 
-func openEditAlbumWindow(myApp fyne.App) {
+func openEditAlbumWindow(myApp fyne.App, myWindow fyne.Window, controller *controller.Controller, id int64) {
 	editA := myApp.NewWindow("Edit")
 	editA.SetIcon(theme.DocumentCreateIcon())
 	editA.Resize(fyne.NewSize(600, 500))
@@ -372,10 +386,15 @@ func openEditAlbumWindow(myApp fyne.App) {
 		},
 		OnSubmit: func() {
 			fmt.Println("Form submitted")
-			fyne.CurrentApp().SendNotification(&fyne.Notification{
-				Title:   "Music Data Base",
-				Content: "Modified Album : " + name.Text + " and " + year.Text,
-			})
+			yearNum, _ := strconv.Atoi(year.Text)
+			if err := controller.EditAlbum(id, name.Text, yearNum); err != nil {
+				dialog.ShowError(err, myWindow)
+			} else {
+				fyne.CurrentApp().SendNotification(&fyne.Notification{
+					Title:   "Music Data Base",
+					Content: "Modified Album : " + name.Text + " and " + year.Text,
+				})
+			}
 			editA.Close()
 		},
 	}
@@ -426,6 +445,7 @@ func openEditPerformerWindow(myApp fyne.App) {
 			death.Enable()
 			group.Disable()
 			inGroup.Enable()
+			noDef.Disable()
 		} else {
 			name.Disable()
 			realName.Disable()
@@ -433,6 +453,7 @@ func openEditPerformerWindow(myApp fyne.App) {
 			death.Disable()
 			group.Enable()
 			inGroup.Disable()
+			noDef.Enable()
 		}
 	})
 	nameInG := widget.NewEntry()
@@ -464,11 +485,13 @@ func openEditPerformerWindow(myApp fyne.App) {
 			start.Enable()
 			end.Enable()
 			person.Disable()
+			noDef.Disable()
 		} else {
 			nameG.Disable()
 			start.Disable()
 			end.Disable()
 			person.Enable()
+			noDef.Enable()
 		}
 	})
 	newName := widget.NewEntry()
