@@ -526,13 +526,26 @@ func openEditPerformerWindow(myApp fyne.App, myWindow fyne.Window, controller *c
 		},
 		OnSubmit: func() {
 			fmt.Println("Form submitted")
-			if err := controller.DefPerson(id, name.Text, realName.Text, birth.Text, death.Text); err != nil {
-				dialog.ShowError(err, myWindow)
+			if nameInG.Text != "" {
+				err := controller.DefPerson(id, name.Text, realName.Text, birth.Text, death.Text)
+				err = controller.AddPersonToGroup(name.Text, realName.Text, birth.Text, death.Text, nameInG.Text)
+				if err != nil {
+					dialog.ShowError(err, myWindow)
+				} else {
+					fyne.CurrentApp().SendNotification(&fyne.Notification{
+						Title:   "Music Data Base",
+						Content: "Modified Performer: " + name.Text + ".\n Real name: " + realName.Text + ".\n Birth date: " + birth.Text + ".\n Death date: " + death.Text + ".\n Add to group: " + nameInG.Text,
+					})
+				}
 			} else {
-				fyne.CurrentApp().SendNotification(&fyne.Notification{
-					Title:   "Music Data Base",
-					Content: "Modified Performer: " + name.Text + ".\n Real name: " + realName.Text + ".\n Birth date: " + birth.Text + ".\n Death date: " + death.Text,
-				})
+				if err := controller.DefPerson(id, name.Text, realName.Text, birth.Text, death.Text); err != nil {
+					dialog.ShowError(err, myWindow)
+				} else {
+					fyne.CurrentApp().SendNotification(&fyne.Notification{
+						Title:   "Music Data Base",
+						Content: "Modified Performer: " + name.Text + ".\n Real name: " + realName.Text + ".\n Birth date: " + birth.Text + ".\n Death date: " + death.Text,
+					})
+				}
 			}
 			editP.Close()
 		},

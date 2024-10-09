@@ -308,3 +308,19 @@ func (db *DataBase) InsertGroupIfNotExists(name, startDate, endDate string) (int
 	groupID, err := db.GetGroupID(name, startDate, endDate)
 	return groupID, nil
 }
+
+func (db *DataBase) GetGroupIDByName(name string) (int64, error) {
+	var id int64
+	query := `SELECT id_group FROM groups WHERE name = ?`
+	err := db.Db.QueryRow(query, name).Scan(&id)
+	if err == sql.ErrNoRows {
+		return 0, nil
+	}
+	return id, err
+}
+
+func (db *DataBase) InsertPersonInGroup(personID int64, groupID int64) error {
+	query := `INSERT INTO in_group (id_person, id_group) VALUES (?, ?)`
+	_, err := db.Db.Exec(query, personID, groupID)
+	return err
+}

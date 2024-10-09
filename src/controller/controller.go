@@ -2,6 +2,7 @@ package controller
 
 import (
 	"log"
+	"fmt"
 	"github.com/KevinJGard/MusicDB/src/model"
 )
 
@@ -107,4 +108,21 @@ func (c *Controller) DefGroup(idPerf int64, name, startDate, endDate string) err
 func (c *Controller) EditPerf(idPerf int64, newName string) error {
 	err := c.DB.UpdateNamePerformer(idPerf, newName)
 	return err
+}
+
+func (c *Controller) AddPersonToGroup(stageName, realName, birthDate, deathDate, nameGroup string) error {
+	personID, err := c.DB.GetPersonID(stageName, realName, birthDate, deathDate)
+	if err != nil {
+		return err
+	}
+	groupID, err := c.DB.GetGroupIDByName(nameGroup)
+	if err != nil {
+		return err
+	}
+
+	if groupID == 0 {
+		return fmt.Errorf("the group '%s' is not found in the database.", nameGroup)
+	}
+	
+	return c.DB.InsertPersonInGroup(personID, groupID)
 }
