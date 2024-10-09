@@ -498,3 +498,33 @@ func TestInsertGroupIfNotExists(t *testing.T) {
 	assert.NoError(t, err, "Failed inserting group.")
 	assert.Equal(t, groupID, sameID, "Expected same ID for existing group.")
 }
+
+func TestGetGroupIDByName(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+	const name = "Name Group"
+	const startDate = "2006"
+	const endDate = "2019"
+
+	err := db.DefineGroup(name, startDate, endDate)
+	assert.NoError(t, err, "Failed inserting group.")
+	id, err := db.GetGroupIDByName(name)
+	assert.NoError(t, err, "Expected no error while getting group ID.")
+	assert.NotZero(t, id, "Expected group ID to be greater than 0.")
+
+	noID, err := db.GetGroupIDByName("No Group")
+	assert.NoError(t, err, "Expected no error while getting no-group ID.")
+	assert.Zero(t, noID, "Expected no-group ID to be 0.")
+}
+
+func TestInsertPersonInGroup(t *testing.T) {
+	tempDir := t.TempDir()
+	os.Setenv("HOME", tempDir)
+
+	db := model.NewDataBase()
+
+	err := db.InsertPersonInGroup(1, 1)
+	assert.NoError(t, err, "Failed inserting in_group.")
+}
