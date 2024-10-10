@@ -3,6 +3,7 @@ package controller
 import (
 	"log"
 	"fmt"
+	"strconv"
 	"github.com/KevinJGard/MusicDB/src/model"
 )
 
@@ -125,4 +126,60 @@ func (c *Controller) AddPersonToGroup(stageName, realName, birthDate, deathDate,
 	}
 	
 	return c.DB.InsertPersonInGroup(personID, groupID)
+}
+
+func (c *Controller) GetSearchSongs(search string) ([]model.Song, error) {
+	results := splitString(search)
+
+	var allSongs []model.Song
+	if len(results["titles"]) > 0 {
+		for _, title := range results["titles"] {
+			songsByTitle, err := c.DB.SearchByTitle(title)
+			if err != nil {
+				return nil, err
+			}
+			allSongs = append(allSongs, songsByTitle...)
+		}
+	}
+	if len(results["artists"]) > 0 {
+		for _, artist := range results["artists"] {
+			songsByPerformer, err := c.DB.SearchByPerformer(artist)
+			if err != nil {
+				return nil, err
+			}
+			allSongs = append(allSongs, songsByPerformer...)
+		}
+	}
+	if len(results["albums"]) > 0 {
+		for _, album := range results["albums"] {
+			songsByAlbum, err := c.DB.SearchByAlbum(album)
+			if err != nil {
+				return nil, err
+			}
+			allSongs = append(allSongs, songsByAlbum...)
+		}
+	}
+	if len(results["years"]) > 0 {
+		for _, year := range results["years"] {
+			yearNum, err := strconv.Atoi(year)
+			if err != nil {
+				return nil, err
+			}
+			songsByYear, err := c.DB.SearchByYear(yearNum)
+			if err != nil {
+				return nil, err
+			}
+			allSongs = append(allSongs, songsByYear...)
+		}
+	}
+	if len(results["genres"]) > 0 {
+		for _, genre := range results["genres"] {
+			songsByGenre, err := c.DB.SearchByGenre(genre)
+			if err != nil {
+				return nil, err
+			}
+			allSongs = append(allSongs, songsByGenre...)
+		}
+	}
+	return allSongs, nil
 }
