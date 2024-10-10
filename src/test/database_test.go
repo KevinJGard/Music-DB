@@ -9,61 +9,63 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewDataBase(t *testing.T) {
+func setupTestDB(t *testing.T) *model.DataBase {
 	tempDir := t.TempDir()
 	os.Setenv("HOME", tempDir)
 
 	db := model.NewDataBase()
+	return db
+}
 
+func assertTableExists(t *testing.T, db *model.DataBase, tableName string) {
+	var count int
+	query := `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = ?`
+	err := db.Db.QueryRow(query, tableName).Scan(&count)
+	assert.NoError(t, err, "Expected no error querying for '%s' table.", tableName)
+	assert.Equal(t, 1, count, "Expected '%s' table to exist.", tableName)
+}
+
+func assertSongInserted(t *testing.T, db *model.DataBase, song *model.Song) {
+	err := db.InsertSong(song)
+	assert.NoError(t, err, "Failed inserting song.")
+	id, err := db.GetSongID(song.PerformerID, song.AlbumID, song.Path, song.Title, song.Genre, song.Track, song.Year)
+	assert.NoError(t, err, "Expected no error while counting songs.")
+	assert.Equal(t, int64(1), id, "Expected one song to be inserted.")
+}
+
+func assertPerformerInserted(t *testing.T, db *model.DataBase, performer *model.Performer) {
+	err := db.InsertPerformer(performer)
+	assert.NoError(t, err, "Failed inserting performer.")
+	id, err := db.GetPerformerID(performer.Name)
+	assert.NoError(t, err, "Expected no error while counting performers.")
+	assert.Equal(t, int64(1), id, "Expected one performer to be inserted.")
+}
+
+func assertAlbumInserted(t *testing.T, db *model.DataBase, album *model.Album) {
+	err := db.InsertAlbum(album)
+	assert.NoError(t, err, "Failed inserting album.")
+	id, err := db.GetAlbumID(album.Name, album.Year)
+	assert.NoError(t, err, "Expected no error while counting albums.")
+	assert.Equal(t, int64(1), id, "Expected one album to be inserted.")
+}
+
+func TestNewDataBase(t *testing.T) {
+	db := setupTestDB(t)
 	assert.NotNil(t, db.Db, "Database should not be nil.")
 
-	var count int
-	query := `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'types'`
-	err := db.Db.QueryRow(query).Scan(&count)
-	assert.NoError(t, err, "Expected no error querying for 'types' table.")
-    assert.Equal(t, 1, count, "Expected 'types' table to exist.")
-
-    query = `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'performers'`
-	err = db.Db.QueryRow(query).Scan(&count)
-	assert.NoError(t, err, "Expected no error querying for 'performers' table.")
-    assert.Equal(t, 1, count, "Expected 'performers' table to exist.")
-
-    query = `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name= 'persons'`
-	err = db.Db.QueryRow(query).Scan(&count)
-	assert.NoError(t, err, "Expected no error querying for 'persons' table.")
-    assert.Equal(t, 1, count, "Expected 'persons' table to exist.")
-
-    query = `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'groups'`
-	err = db.Db.QueryRow(query).Scan(&count)
-	assert.NoError(t, err, "Expected no error querying for 'groups' table.")
-    assert.Equal(t, 1, count, "Expected 'groups' table to exist.")
-
-    query = `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'albums'`
-	err = db.Db.QueryRow(query).Scan(&count)
-	assert.NoError(t, err, "Expected no error querying for 'albums' table.")
-    assert.Equal(t, 1, count, "Expected 'albums' table to exist.")
-
-    query = `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'rolas'`
-	err = db.Db.QueryRow(query).Scan(&count)
-	assert.NoError(t, err, "Expected no error querying for 'rolas' table.")
-    assert.Equal(t, 1, count, "Expected 'rolas' table to exist.")
-
-    query = `SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'in_group'`
-	err = db.Db.QueryRow(query).Scan(&count)
-	assert.NoError(t, err, "Expected no error querying for 'in_group' table.")
-    assert.Equal(t, 1, count, "Expected 'in_group' table to exist.")
+	tables := []string{"types", "performers", "persons", "groups", "albums", "rolas", "in_group"}
+	for _, table := range tables {
+		assertTableExists(t, db, table)
+	}
     
-    dbFilePath := filepath.Join(tempDir, ".local", "share", "MusicDB", "music.sqlite")
-    _, err = os.Stat(dbFilePath)
+    dbFilePath := filepath.Join(os.Getenv("HOME"), ".local", "share", "MusicDB", "music.sqlite")
+    _, err := os.Stat(dbFilePath)
     assert.NoError(t, err, "Database file should exist.")
     defer db.Db.Close()
 }
 
 func TestInsertSong(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	song := &model.Song{
 		PerformerID: 1,
 		AlbumID: 1,
@@ -74,55 +76,32 @@ func TestInsertSong(t *testing.T) {
 		Genre: "Rap",
 	}
 
-	err := db.InsertSong(song)
-	assert.NoError(t, err, "Failed inserting song.")
-	var id int
-	query := `SELECT id_rola FROM rolas WHERE title = ?`
-	err = db.Db.QueryRow(query, song.Title).Scan(&id)
-	assert.NoError(t, err, "Expected no error while counting songs.")
-	assert.Equal(t, 1, id, "Expected one song to be inserted.")
+	assertSongInserted(t, db, song)
 }
 
 func TestInsertPerformer(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	performer := &model.Performer{
 		Type: 1,
 		Name: "Test Group",
 	}
 
-	err := db.InsertPerformer(performer)
-	assert.NoError(t, err, "Failed inserting performer.")
-	id, err := db.GetPerformerID(performer.Name)
-	assert.NoError(t, err, "Expected no error while counting performers.")
-	assert.Equal(t, int64(1), id, "Expected one performer to be inserted.")
+	assertPerformerInserted(t, db, performer)
 }
 
 func TestInsertAlbum(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	album := &model.Album{
 		Path: "/path/test/song1.mp3",
 		Name: "Test Album",
 		Year: 1945,
 	}
 
-	err := db.InsertAlbum(album)
-	assert.NoError(t, err, "Failed inserting album.")
-	id, err := db.GetAlbumID(album.Name, album.Year)
-	assert.NoError(t, err, "Expected no error while counting albums.")
-	assert.Equal(t, int64(1), id, "Expected one album to be inserted.")
+	assertAlbumInserted(t, db, album)
 }
 
 func TestGetSongID(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	song := &model.Song{
 		PerformerID: 1,
         AlbumID: 1,
@@ -133,11 +112,7 @@ func TestGetSongID(t *testing.T) {
         Genre: "Pop", 
 	}
 
-	err := db.InsertSong(song)
-	assert.NoError(t, err, "Failed inserting song.")
-	id, err := db.GetSongID(song.PerformerID, song.AlbumID, song.Path, song.Title, song.Genre, song.Track, song.Year)
-	assert.NoError(t, err, "Expected no error while getting song ID.")
-	assert.NotZero(t, id, "Expected song ID to be greater than 0.")
+	assertSongInserted(t, db, song)
 
 	noID, err := db.GetSongID(5, 3, "test/music/song.mp3", "song.mp3", "Rap", 5, 2014)
 	assert.NoError(t, err, "Expected no error while getting no-song ID.")
@@ -145,20 +120,13 @@ func TestGetSongID(t *testing.T) {
 }
 
 func TestGetPerformerID(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	performer := &model.Performer{
 		Type: 1,
 		Name: "Test Group",
 	}
 
-	err := db.InsertPerformer(performer)
-	assert.NoError(t, err, "Failed inserting performer.")
-	id, err := db.GetPerformerID(performer.Name)
-	assert.NoError(t, err, "Expected no error while getting performer ID.")
-	assert.NotZero(t, id, "Expected performer ID to be greater than 0.")
+	assertPerformerInserted(t, db, performer)
 
 	noID, err := db.GetPerformerID("No Performer")
 	assert.NoError(t, err, "Expected no error while getting no-performer ID.")
@@ -166,21 +134,14 @@ func TestGetPerformerID(t *testing.T) {
 }
 
 func TestGetAlbumID(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	album := &model.Album{
 		Path: "/path/test/song1.mp3",
 		Name: "Test Album",
 		Year: 1945,
 	}
 
-	err := db.InsertAlbum(album)
-	assert.NoError(t, err, "Failed inserting album.")
-	id, err := db.GetAlbumID(album.Name, album.Year)
-	assert.NoError(t, err, "Expected no error while getting album ID.")
-	assert.NotZero(t, id, "Expected album ID to be greater than 0.")
+	assertAlbumInserted(t, db, album)
 
 	noID, err := db.GetAlbumID("No album",  1)
 	assert.NoError(t, err, "Expected no error while getting no-album ID.")
@@ -188,10 +149,7 @@ func TestGetAlbumID(t *testing.T) {
 }
 
 func TestInsertSongIfNotExists(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	song := &model.Song{
 		PerformerID: 1,
         AlbumID: 1,
@@ -211,10 +169,7 @@ func TestInsertSongIfNotExists(t *testing.T) {
 }
 
 func TestInsertPerformerIfNotExists(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	performer := &model.Performer{
 		Type: 0,
 		Name: "Test Performer",
@@ -229,10 +184,7 @@ func TestInsertPerformerIfNotExists(t *testing.T) {
 }
 
 func TestInsertAlbumIfNotExists(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	album := &model.Album{
 		Path: "/path/test/song1.mp3",
 		Name: "Test Album",
@@ -248,10 +200,7 @@ func TestInsertAlbumIfNotExists(t *testing.T) {
 }
 
 func TestGetPerformerName(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	performer := &model.Performer{
 		Type: 1,
 		Name: "Test Group",
@@ -269,10 +218,7 @@ func TestGetPerformerName(t *testing.T) {
 }
 
 func TestGetAlbumName(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	album := &model.Album{
 		Path: "/path/test/song1.mp3",
 		Name: "Test Album",
@@ -291,10 +237,7 @@ func TestGetAlbumName(t *testing.T) {
 }
 
 func TestUpdateSong(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	song := &model.Song{
 		PerformerID: 1,
         AlbumID: 1,
@@ -316,10 +259,7 @@ func TestUpdateSong(t *testing.T) {
 }
 
 func TestUpdateAlbum(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	album := &model.Album{
 		Path: "/path/test/song1.mp3",
 		Name: "Test Album",
@@ -341,10 +281,7 @@ func TestUpdateAlbum(t *testing.T) {
 }
 
 func TestUpdatePerformer(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	performer := &model.Performer{
 		Type: 1,
 		Name: "Existing performer",
@@ -365,10 +302,7 @@ func TestUpdatePerformer(t *testing.T) {
 }
 
 func TestUpdateNamePerformer(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	performer := &model.Performer{
 		Type: 1,
 		Name: "Existing performer",
@@ -388,16 +322,7 @@ func TestUpdateNamePerformer(t *testing.T) {
 	assert.Equal(t, "New name", sameName, "Expected performer name to match.")
 }
 
-func TestDefinePerson(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
-	const stageName = "Stage Name"
-	const realName = "Real Name"
-	const birthDate = "1945"
-	const deathDate = "2011"
-
+func assertDefinePerson(t *testing.T, db *model.DataBase, stageName, realName, birthDate, deathDate string) {
 	err := db.DefinePerson(stageName, realName, birthDate, deathDate)
 	assert.NoError(t, err, "Failed inserting person.")
 	id, err := db.GetPersonID(stageName, realName, birthDate, deathDate)
@@ -405,21 +330,25 @@ func TestDefinePerson(t *testing.T) {
 	assert.Equal(t, int64(1), id, "Expected one person to be inserted.")
 }
 
-func TestGetPersonID(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+func TestDefinePerson(t *testing.T) {
+	db := setupTestDB(t)
 	const stageName = "Stage Name"
 	const realName = "Real Name"
 	const birthDate = "1945"
 	const deathDate = "2011"
 
-	err := db.DefinePerson(stageName, realName, birthDate, deathDate)
-	assert.NoError(t, err, "Failed inserting person.")
-	id, err := db.GetPersonID(stageName, realName, birthDate, deathDate)
-	assert.NoError(t, err, "Expected no error while getting person ID.")
-	assert.NotZero(t, id, "Expected person ID to be greater than 0.")
+	assertDefinePerson(t, db, stageName, realName, birthDate, deathDate)
+}
+
+func TestGetPersonID(t *testing.T) {
+	db := setupTestDB(t)
+	const stageName = "Stage Name"
+	const realName = "Real Name"
+	const birthDate = "1945"
+	const deathDate = "2011"
+
+	assertDefinePerson(t, db, stageName, realName, birthDate, deathDate)
+
 
 	noID, err := db.GetPersonID("No Person", "No Person Name", "2000", "0")
 	assert.NoError(t, err, "Expected no error while getting no-person ID.")
@@ -427,10 +356,7 @@ func TestGetPersonID(t *testing.T) {
 }
 
 func TestInsertPersonIfNotExists(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	const stageName = "Stage Name"
 	const realName = "Real Name"
 	const birthDate = "1945"
@@ -445,15 +371,7 @@ func TestInsertPersonIfNotExists(t *testing.T) {
 	assert.Equal(t, personID, sameID, "Expected same ID for existing person.")
 }
 
-func TestDefineGroup(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
-	const name = "Name Group"
-	const startDate = "2006"
-	const endDate = "2019"
-
+func assertDefineGroup(t *testing.T, db *model.DataBase, name, startDate, endDate string) {
 	err := db.DefineGroup(name, startDate, endDate)
 	assert.NoError(t, err, "Failed inserting group.")
 	id, err := db.GetGroupID(name, startDate, endDate)
@@ -461,20 +379,22 @@ func TestDefineGroup(t *testing.T) {
 	assert.Equal(t, int64(1), id, "Expected one group to be inserted.")
 }
 
-func TestGetGroupID(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+func TestDefineGroup(t *testing.T) {
+	db := setupTestDB(t)
 	const name = "Name Group"
 	const startDate = "2006"
 	const endDate = "2019"
 
-	err := db.DefineGroup(name, startDate, endDate)
-	assert.NoError(t, err, "Failed inserting group.")
-	id, err := db.GetGroupID(name, startDate, endDate)
-	assert.NoError(t, err, "Expected no error while getting group ID.")
-	assert.NotZero(t, id, "Expected group ID to be greater than 0.")
+	assertDefineGroup(t, db, name, startDate, endDate)
+}
+
+func TestGetGroupID(t *testing.T) {
+	db := setupTestDB(t)
+	const name = "Name Group"
+	const startDate = "2006"
+	const endDate = "2019"
+
+	assertDefineGroup(t, db, name, startDate, endDate)
 
 	noID, err := db.GetGroupID("No Group", "2000", "0")
 	assert.NoError(t, err, "Expected no error while getting no-group ID.")
@@ -482,10 +402,7 @@ func TestGetGroupID(t *testing.T) {
 }
 
 func TestInsertGroupIfNotExists(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	const name = "Name Group"
 	const startDate = "2006"
 	const endDate = "2019"
@@ -500,10 +417,7 @@ func TestInsertGroupIfNotExists(t *testing.T) {
 }
 
 func TestGetGroupIDByName(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 	const name = "Name Group"
 	const startDate = "2006"
 	const endDate = "2019"
@@ -520,11 +434,78 @@ func TestGetGroupIDByName(t *testing.T) {
 }
 
 func TestInsertPersonInGroup(t *testing.T) {
-	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
-
-	db := model.NewDataBase()
+	db := setupTestDB(t)
 
 	err := db.InsertPersonInGroup(1, 1)
 	assert.NoError(t, err, "Failed inserting in_group.")
+}
+
+func assertInsert(t *testing.T, db *model.DataBase) {
+	performer := &model.Performer{Name: "Test Performer", Type: 1}
+    performerID, err := db.InsertPerformerIfNotExists(performer.Name, performer.Type)
+    assert.NoError(t, err, "Failed inserting performer.")
+    album := &model.Album{Name: "Test Album", Year: 1901, Path: "/path/test"}
+    albumID, err := db.InsertAlbumIfNotExists(album.Name, album.Year, album.Path)
+    assert.NoError(t, err, "Failed inserting album.")
+	song := &model.Song{
+		PerformerID: performerID,
+        AlbumID: albumID,
+        Path: "/path/test/song1.mp3", 
+        Title: "song1", 
+        Track: 34, 
+        Year: 1901, 
+        Genre: "Pop", 
+	}
+	err = db.InsertSong(song)
+	assert.NoError(t, err, "Failed inserting song.")
+}
+
+func TestSearchByTitle(t *testing.T) {
+	db := setupTestDB(t)
+	assertInsert(t, db)
+	
+	songs, err := db.SearchByTitle("song1")
+	assert.NoError(t, err, "Expected no error searching by title.")
+	assert.Len(t, songs, 1, "Expected one song returned.")
+	assert.Equal(t, "song1", songs[0].Title, "Expected song title to match.")
+}
+
+func TestSearchByPerformer(t *testing.T) {
+	db := setupTestDB(t)
+	assertInsert(t, db)
+	
+	songs, err := db.SearchByPerformer("Test Performer")
+	assert.NoError(t, err, "Expected no error searching by performer.")
+	assert.Len(t, songs, 1, "Expected one song returned.")
+	assert.Equal(t, "song1", songs[0].Title, "Expected song title to match.")
+}
+
+func TestSearchSearchByAlbum(t *testing.T) {
+	db := setupTestDB(t)
+	assertInsert(t, db)
+	
+	songs, err := db.SearchByAlbum("Test Album")
+	assert.NoError(t, err, "Expected no error searching by album.")
+	assert.Len(t, songs, 1, "Expected one song returned.")
+	assert.Equal(t, "song1", songs[0].Title, "Expected song title to match.")
+}
+
+func TestSearchSearchByYear(t *testing.T) {
+	db := setupTestDB(t)
+	assertInsert(t, db)
+	
+	songs, err := db.SearchByYear(1901)
+	assert.NoError(t, err, "Expected no error searching by year.")
+	assert.Len(t, songs, 1, "Expected one song returned.")
+	assert.Equal(t, "song1", songs[0].Title, "Expected song title to match.")
+}
+
+func TestSearchByGenre(t *testing.T) {
+	db := setupTestDB(t)
+	assertInsert(t, db)
+	
+	songs, err := db.SearchByGenre("Pop")
+	assert.NoError(t, err, "Expected no error searching by year.")
+	assert.Len(t, songs, 1, "Expected one song returned.")
+	assert.Equal(t, "song1", songs[0].Title, "Expected song title to match.")
 }

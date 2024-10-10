@@ -324,3 +324,139 @@ func (db *DataBase) InsertPersonInGroup(personID int64, groupID int64) error {
 	_, err := db.Db.Exec(query, personID, groupID)
 	return err
 }
+
+func (db *DataBase) SearchByTitle(title string) ([]Song, error) {
+	var songs []Song
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE title = ?`, title)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var song Song
+		if err := rows.Scan(&song.ID, &song.PerformerID, &song.AlbumID, &song.Path, &song.Title, &song.Track, &song.Year, &song.Genre); err != nil {
+			return nil, err
+		}
+		performerName, err := db.GetPerformerName(song.PerformerID)
+		if err != nil {
+			return nil, err
+		}
+		albumName, err := db.GetAlbumName(song.AlbumID)
+		if err != nil {
+			return nil, err
+		}
+		song.PerformerName = performerName
+		song.AlbumName = albumName
+		songs = append(songs, song)
+	}
+	return songs, nil
+}
+
+func (db *DataBase) SearchByPerformer(performer string) ([]Song, error) {
+	var songs []Song
+	idPerf, err := db.GetPerformerID(performer)
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE id_performer = ?`, idPerf)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var song Song
+		if err := rows.Scan(&song.ID, &song.PerformerID, &song.AlbumID, &song.Path, &song.Title, &song.Track, &song.Year, &song.Genre); err != nil {
+			return nil, err
+		}
+		performerName, err := db.GetPerformerName(song.PerformerID)
+		if err != nil {
+			return nil, err
+		}
+		albumName, err := db.GetAlbumName(song.AlbumID)
+		if err != nil {
+			return nil, err
+		}
+		song.PerformerName = performerName
+		song.AlbumName = albumName
+		songs = append(songs, song)
+	}
+	return songs, nil
+}
+
+func (db *DataBase) SearchByAlbum(album string) ([]Song, error) {
+	var songs []Song
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE id_album IN (SELECT id_album FROM albums WHERE name = ?)`, album)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var song Song
+		if err := rows.Scan(&song.ID, &song.PerformerID, &song.AlbumID, &song.Path, &song.Title, &song.Track, &song.Year, &song.Genre); err != nil {
+			return nil, err
+		}
+		performerName, err := db.GetPerformerName(song.PerformerID)
+		if err != nil {
+			return nil, err
+		}
+		albumName, err := db.GetAlbumName(song.AlbumID)
+		if err != nil {
+			return nil, err
+		}
+		song.PerformerName = performerName
+		song.AlbumName = albumName
+		songs = append(songs, song)
+	}
+	return songs, nil
+}
+
+func (db *DataBase) SearchByYear(year int) ([]Song, error) {
+	var songs []Song
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE year = ?`, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var song Song
+		if err := rows.Scan(&song.ID, &song.PerformerID, &song.AlbumID, &song.Path, &song.Title, &song.Track, &song.Year, &song.Genre); err != nil {
+			return nil, err
+		}
+		performerName, err := db.GetPerformerName(song.PerformerID)
+		if err != nil {
+			return nil, err
+		}
+		albumName, err := db.GetAlbumName(song.AlbumID)
+		if err != nil {
+			return nil, err
+		}
+		song.PerformerName = performerName
+		song.AlbumName = albumName
+		songs = append(songs, song)
+	}
+	return songs, nil
+}
+
+func (db *DataBase) SearchByGenre(genre string) ([]Song, error) {
+	var songs []Song
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE genre = ?`, genre)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var song Song
+		if err := rows.Scan(&song.ID, &song.PerformerID, &song.AlbumID, &song.Path, &song.Title, &song.Track, &song.Year, &song.Genre); err != nil {
+			return nil, err
+		}
+		performerName, err := db.GetPerformerName(song.PerformerID)
+		if err != nil {
+			return nil, err
+		}
+		albumName, err := db.GetAlbumName(song.AlbumID)
+		if err != nil {
+			return nil, err
+		}
+		song.PerformerName = performerName
+		song.AlbumName = albumName
+		songs = append(songs, song)
+	}
+	return songs, nil
+}
