@@ -16,6 +16,7 @@ import (
 	"github.com/KevinJGard/MusicDB/src/controller"
 )
 
+// Run_View initializes and starts the main application window.
 func Run_View() {
 	controller := controller.NewController()
 	var (
@@ -72,6 +73,7 @@ func Run_View() {
 	myWindow.ShowAndRun()
 }
 
+// createSearchContainer creates a container for the search functionality.
 func createSearchContainer(myWindow fyne.Window, controller *controller.Controller, myApp fyne.App) *fyne.Container {
 	searchEntry := widget.NewEntry()
 	searchEntry.SetPlaceHolder("Search...")
@@ -91,6 +93,7 @@ func createSearchContainer(myWindow fyne.Window, controller *controller.Controll
 	return container.NewGridWithColumns(2, searchEntry, searchButton)
 }
 
+// openSongsFound creates a new window displaying the found songs based on the search query.
 func openSongsFound(controller *controller.Controller, myApp fyne.App, search string) {
 	songsFound := myApp.NewWindow("Songs Found")
 	songsFound.SetIcon(theme.SearchIcon())
@@ -109,6 +112,7 @@ func openSongsFound(controller *controller.Controller, myApp fyne.App, search st
 	songsFound.Show()
 }
 
+// openSettingsWindow creates a settings window for the application.
 func openSettingsWindow(myApp fyne.App) {
 	settingsWindow := myApp.NewWindow("Settings")
 	settingsWindow.SetIcon(theme.SettingsIcon())
@@ -129,6 +133,7 @@ func openSettingsWindow(myApp fyne.App) {
 	settingsWindow.Show()
 }
 
+// createThemeButtons creates buttons to switch between light and dark theme.
 func createThemeButtons(myApp fyne.App) *fyne.Container {
 	darkButton := widget.NewButton("Dark", func() {
 		myApp.Settings().SetTheme(theme.DarkTheme())
@@ -140,6 +145,7 @@ func createThemeButtons(myApp fyne.App) *fyne.Container {
 	return container.NewGridWithColumns(2, darkButton, lightButton)
 }
 
+// createMainMenu sets up the main menu of the application.
 func createMainMenu(myApp fyne.App, myWindow fyne.Window, mineMetadata func(), controller *controller.Controller) *fyne.MainMenu {
 	menuItemFull := fyne.NewMenuItem("Full screen", func() {
 		myWindow.SetFullScreen(!myWindow.FullScreen())
@@ -171,6 +177,7 @@ func createMainMenu(myApp fyne.App, myWindow fyne.Window, mineMetadata func(), c
 	return fyne.NewMainMenu(menu, newMenu2, newMenu3)
 }
 
+// setPath allows the user to select a directory for music files.
 func setPath(myWindow fyne.Window, controller *controller.Controller) {
 	dialog.NewFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err == nil && uri != nil {
@@ -186,6 +193,7 @@ func setPath(myWindow fyne.Window, controller *controller.Controller) {
 	}, myWindow).Show()
 }
 
+// createListContainer creates a container to display the list of songs.
 func createListContainer(controller *controller.Controller, myWindow fyne.Window, myApp fyne.App) (*container.Split, *container.Split, func()) {
 	var (
 		songEdit *widget.Button
@@ -289,6 +297,7 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 	return container.NewHSplit(list, container.NewCenter(detailsContainer)), container.NewHSplit(container.NewCenter(yourMusic), container.NewCenter(contentIcons2)),updateList
 }
 
+// createListContainerBySearch creates a container to display songs based on the search query.
 func createListContainerBySearch(controller *controller.Controller, myWindow fyne.Window, myApp fyne.App, search string) (*container.Split, *container.Split) {
 	var (
 		songEdit *widget.Button
@@ -392,6 +401,7 @@ func createListContainerBySearch(controller *controller.Controller, myWindow fyn
 	return container.NewHSplit(list, container.NewCenter(detailsContainer)), container.NewHSplit(container.NewCenter(yourMusic), container.NewCenter(contentIcons2))
 }
 
+// openEditSongWindow opens a window to edit song information.
 func openEditSongWindow(myApp fyne.App, controller *controller.Controller, id int64, updateList func()) {
 	editS := myApp.NewWindow("Edit")
 	editS.SetIcon(theme.DocumentCreateIcon())
@@ -449,6 +459,7 @@ func openEditSongWindow(myApp fyne.App, controller *controller.Controller, id in
 	editS.Show()
 }
 
+// openEditAlbumWindow opens a window to edit album information.
 func openEditAlbumWindow(myApp fyne.App, controller *controller.Controller, id int64) {
 	editA := myApp.NewWindow("Edit")
 	editA.SetIcon(theme.DocumentCreateIcon())
@@ -496,6 +507,8 @@ func openEditAlbumWindow(myApp fyne.App, controller *controller.Controller, id i
 	editA.Show()
 }
 
+// openEditPerformerWindow opens a window to edit performer information, also allows you to set it as a person 
+// or as a group and if you set it as a person it allows you to add it to a group.
 func openEditPerformerWindow(myApp fyne.App, controller *controller.Controller, id int64) {
 	var (
 		person *widget.Check

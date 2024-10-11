@@ -2,11 +2,14 @@ package controller
 
 import "strings"
 
+// addValues appends values from the given section to the results map under the specified key.
 func addValues(results map[string][]string, key, seccion string) {
 	values := strings.Split(seccion, "&&")
 	results[key] = append(results[key], values...)
 }
 
+// splitString processes the search string and separates its content into titles, artists, 
+// albums, years and genres, according to the set search language.
 func splitString(search string) map[string][]string {
 	results := map[string][]string{
 		"titles": {},

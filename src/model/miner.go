@@ -7,12 +7,15 @@ import (
 	"github.com/dhowden/tag"
 )
 
+// Miner is responsible for mining metadata from MP3 files.
 type Miner struct{}
 
+// NewMiner creates and returns a new Miner instance.
 func NewMiner() *Miner {
 	return &Miner{}
 }
 
+// FindMP3Files traverses the specified directory and returns a list of MP3 files.
 func (miner *Miner) FindMP3Files(directory string) ([]string, error) {
 	const mp3 = ".mp3"
 	var files []string
@@ -33,6 +36,7 @@ func (miner *Miner) FindMP3Files(directory string) ([]string, error) {
 	return files, nil
 }
 
+// MineMetadata extracts metadata from a given MP3 file.
 func (miner *Miner) MineMetadata(file string) (map[string]interface{}, error) {
 	f, err := os.Open(file)
 	if err != nil {
@@ -47,6 +51,8 @@ func (miner *Miner) MineMetadata(file string) (map[string]interface{}, error) {
 	return miner.AssignTag(metadata), nil
 }
 
+// AssignTag replaces empty extracted metadata by assigning default values such as 'Unknown',
+// '1' and the current year.
 func (miner *Miner) AssignTag(metadata tag.Metadata) map[string]interface{} {
 	disc, totalDiscs := metadata.Disc()
 	trackNumber, totalTracks := metadata.Track()
@@ -66,6 +72,7 @@ func (miner *Miner) AssignTag(metadata tag.Metadata) map[string]interface{} {
 	}
 }
 
+// checkStringTag returns "Unknown" if the tag is empty.
 func checkStringTag(tag string) string {
 	if tag == "" {
 		return "Unknown"
@@ -73,6 +80,7 @@ func checkStringTag(tag string) string {
 	return tag
 }
 
+// checkYearTag returns the current year if the year is 0.
 func checkYearTag(year int) int {
 	if year == 0 {
 		return time.Now().Year()
@@ -80,6 +88,7 @@ func checkYearTag(year int) int {
 	return year
 }
 
+// checkTrackTag returns default values if any track tag is 0.
 func checkTrackTag(trackNumber int, totalTracks int) (int, int) {
 	if trackNumber == 0 && totalTracks == 0{
 		return 1, 1
@@ -91,6 +100,7 @@ func checkTrackTag(trackNumber int, totalTracks int) (int, int) {
 	return trackNumber, totalTracks
 }
 
+// ProcessFile mines metadata from an MP3 file and inserts it into the database.
 func (miner *Miner) ProcessFile(db *DataBase, file string) error {
 	metadata, err := miner.MineMetadata(file)
 	if err != nil {

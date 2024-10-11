@@ -7,12 +7,14 @@ import (
 	"github.com/KevinJGard/MusicDB/src/model"
 )
 
+// Controller manages the interaction between the model and the view.
 type Controller struct {
 	DB *model.DataBase
 	Miner *model.Miner
 	Config *model.Config
 }
 
+// NewController creates and returns a new Controller instance.
 func NewController() *Controller {
 	config := model.NewConfig()
 	db := model.NewDataBase()
@@ -20,11 +22,13 @@ func NewController() *Controller {
 	return &Controller{DB: db, Miner: miner, Config: config}
 }
 
+// SetMusicDirectory updates the music directory in the configuration.
 func (c *Controller) SetMusicDirectory(newDir string) error {
 	return c.Config.SetDirectory(newDir)
 }
 
-
+// MineMetadata finds MP3 files in the directory, extracts metadata from an MP3 file and 
+// inserts it into the database.
 func (c *Controller) MineMetadata(updateProgress func(int), complete func()) error {
 	directory := c.Config.MusicDirectory
 	files, err := c.Miner.FindMP3Files(directory)
@@ -44,6 +48,7 @@ func (c *Controller) MineMetadata(updateProgress func(int), complete func()) err
 	return nil
 }
 
+// GetSongs retrieves all songs from the database.
 func (c *Controller) GetSongs() ([]model.Song, error) {
 	var songs []model.Song
 	rows, err := c.DB.Db.Query("SELECT * FROM rolas")
@@ -76,16 +81,19 @@ func (c *Controller) GetSongs() ([]model.Song, error) {
 	return songs, nil
 }
 
+// EditSong updates the details of a song.
 func (c *Controller) EditSong(idRola int64, newTitle, newGenre string, newTrack, newYear int) error {
 	err := c.DB.UpdateSong(idRola, newTitle, newGenre, newTrack, newYear)
 	return err
 }
 
+// EditAlbum updates the details of an album.
 func (c *Controller) EditAlbum(idAlbum int64, newName string, newYear int) error {
 	err := c.DB.UpdateAlbum(idAlbum, newName, newYear)
 	return err
 }
 
+// DefPerson defines a performer as a person and inserts their details into the database.
 func (c *Controller) DefPerson(idPerf int64, stageName, realName, birthDate, deathDate string) error {
 	err := c.DB.UpdatePerformer(idPerf, 0, stageName)
 	if err != nil {
@@ -96,6 +104,7 @@ func (c *Controller) DefPerson(idPerf int64, stageName, realName, birthDate, dea
 	return err
 }
 
+// DefGroup defines a performer as a group and inserts their details into the database.
 func (c *Controller) DefGroup(idPerf int64, name, startDate, endDate string) error {
 	err := c.DB.UpdatePerformer(idPerf, 1, name)
 	if err != nil {
@@ -106,11 +115,13 @@ func (c *Controller) DefGroup(idPerf int64, name, startDate, endDate string) err
 	return err
 }
 
+// EditPerf updates the name of a performer
 func (c *Controller) EditPerf(idPerf int64, newName string) error {
 	err := c.DB.UpdateNamePerformer(idPerf, newName)
 	return err
 }
 
+// AddPersonToGroup adds a person to a specified group in the database.
 func (c *Controller) AddPersonToGroup(stageName, realName, birthDate, deathDate, nameGroup string) error {
 	personID, err := c.DB.GetPersonID(stageName, realName, birthDate, deathDate)
 	if err != nil {
@@ -128,6 +139,7 @@ func (c *Controller) AddPersonToGroup(stageName, realName, birthDate, deathDate,
 	return c.DB.InsertPersonInGroup(personID, groupID)
 }
 
+// GetSearchSongs searches for songs according to the request.
 func (c *Controller) GetSearchSongs(search string) ([]model.Song, error) {
 	results := splitString(search)
 
