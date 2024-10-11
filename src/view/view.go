@@ -23,11 +23,11 @@ func Run_View() {
 		progressContainer *fyne.Container
 	)
 	myApp := app.NewWithID("com.kevingard.musicdatabase")
-	myWindow := myApp.NewWindow("Music Data Base")
+	myWindow := myApp.NewWindow("Music DB")
 	myWindow.SetIcon(theme.MediaMusicIcon())
-	myWindow.Resize(fyne.NewSize(1000, 600))
+	myWindow.Resize(fyne.NewSize(1150, 600))
 
-	searchContainer := createSearchContainer(myWindow)
+	searchContainer := createSearchContainer(myWindow, controller, myApp)
 	cont, contSouth, updateList := createListContainer(controller, myWindow, myApp)
 	progress = widget.NewProgressBar()
 	loading := widget.NewLabel("Getting metadata...")
@@ -72,7 +72,7 @@ func Run_View() {
 	myWindow.ShowAndRun()
 }
 
-func createSearchContainer(myWindow fyne.Window) *fyne.Container {
+func createSearchContainer(myWindow fyne.Window, controller *controller.Controller, myApp fyne.App) *fyne.Container {
 	searchEntry := widget.NewEntry()
 	searchEntry.SetPlaceHolder("Search...")
 
@@ -80,6 +80,7 @@ func createSearchContainer(myWindow fyne.Window) *fyne.Container {
 		query := searchEntry.Text
 		if query != "" {
 			fmt.Println("Search:", query)
+			openSongsFound(controller, myApp, searchEntry.Text)
 			searchEntry.SetText("")
 		} else {
 			err := errors.New("Enter your search.")
@@ -90,48 +91,28 @@ func createSearchContainer(myWindow fyne.Window) *fyne.Container {
 	return container.NewGridWithColumns(2, searchEntry, searchButton)
 }
 
+func openSongsFound(controller *controller.Controller, myApp fyne.App, search string) {
+	songsFound := myApp.NewWindow("Songs Found")
+	songsFound.SetIcon(theme.SearchIcon())
+	songsFound.Resize(fyne.NewSize(1000, 600))
+
+	songsLabel := widget.NewLabelWithStyle("Songs Found", fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	songsIcon := widget.NewIcon(theme.SearchIcon())
+	north := container.NewHBox(songsLabel, songsIcon)
+	center := container.NewCenter(north)
+	cont, contSouth := createListContainerBySearch(controller, songsFound, myApp, search)
+	editContent := container.New(layout.NewBorderLayout(center, contSouth, nil, nil),
+		center, cont, contSouth)
+
+	songsFound.SetContent(editContent)
+	songsFound.CenterOnScreen()
+	songsFound.Show()
+}
+
 func openSettingsWindow(myApp fyne.App) {
-	var editButton *widget.Button
 	settingsWindow := myApp.NewWindow("Settings")
 	settingsWindow.SetIcon(theme.SettingsIcon())
 	settingsWindow.Resize(fyne.NewSize(600, 500))
-
-	//form
-	name := widget.NewEntry()
-	name.SetPlaceHolder("Your username")
-	name.Validator = validation.NewRegexp(`^[A-Za-z0-9_-]+$`, "username can only contain letters, numbers, '_', and '-'")
-	email := widget.NewEntry()
-	email.SetPlaceHolder("example@example.com")
-	email.Validator = validation.NewRegexp(`\w{1,}@\w{1,}\.\w{1,4}`, "not a valid email")
-	password := widget.NewPasswordEntry()
-	password.SetPlaceHolder("Password")
-	password.Validator = validation.NewRegexp(`^[A-Za-z0-9_-]+$`, "password can only contain letters, numbers, '_', and '-'")
-
-	form := &widget.Form{
-		Items: []*widget.FormItem{
-			{Text: "UserName", Widget: name, HintText: "Your username"},
-			{Text: "Email", Widget: email, HintText: "Your email address"},
-		},
-		OnCancel: func() {
-			fmt.Println("Cancelled")
-		},
-	}
-	editButton = widget.NewButtonWithIcon("Login", theme.AccountIcon() ,func() {
-		form.Show()
-		editButton.Hide()
-	})
-
-	form.OnSubmit = func() {
-		fmt.Println("Form submitted")
-		fyne.CurrentApp().SendNotification(&fyne.Notification{
-			Title:   "Music Data Base",
-			Content: "Hello " + name.Text,
-		})
-		editButton.Show()
-		form.Hide()
-	}
-
-	form.Append("Password", password)
 
 	themes := createThemeButtons(myApp)
 	quit := widget.NewButton("Close", func() {settingsWindow.Close()})
@@ -141,8 +122,8 @@ func openSettingsWindow(myApp fyne.App) {
 	north := container.NewHBox(labelSettings, iconSettings)
 	center := container.NewCenter(north)
 
-	settingsContent := container.New(layout.NewBorderLayout(center, themes, quit, nil),
-		center, themes, quit, form, editButton)
+	settingsContent := container.New(layout.NewBorderLayout(center, quit, nil, nil),
+		center, themes, quit)
 
 	settingsWindow.SetContent(settingsContent)
 	settingsWindow.Show()
@@ -290,13 +271,13 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 		genreLabel.SetText("Genre: " + song.Genre)
 		detailsCont.Show()
 		songEdit.OnTapped = func() {
-			openEditSongWindow(myApp, myWindow, controller, song.ID, updateList)
+			openEditSongWindow(myApp, controller, song.ID, updateList)
 		}
 		albumEdit.OnTapped = func() {
-			openEditAlbumWindow(myApp, myWindow, controller, song.AlbumID)
+			openEditAlbumWindow(myApp, controller, song.AlbumID)
 		}
 		performerEdit.OnTapped = func() {
-			openEditPerformerWindow(myApp, myWindow, controller, song.PerformerID)
+			openEditPerformerWindow(myApp, controller, song.PerformerID)
 		}
 	}
 	list.OnUnselected = func(id widget.ListItemID) {
@@ -308,7 +289,110 @@ func createListContainer(controller *controller.Controller, myWindow fyne.Window
 	return container.NewHSplit(list, container.NewCenter(detailsContainer)), container.NewHSplit(container.NewCenter(yourMusic), container.NewCenter(contentIcons2)),updateList
 }
 
-func openEditSongWindow(myApp fyne.App, myWindow fyne.Window, controller *controller.Controller, id int64, updateList func()) {
+func createListContainerBySearch(controller *controller.Controller, myWindow fyne.Window, myApp fyne.App, search string) (*container.Split, *container.Split) {
+	var (
+		songEdit *widget.Button
+		albumEdit *widget.Button
+		performerEdit *widget.Button
+	)
+	data := make([]string, 0)
+
+	list := widget.NewList(
+		func() int {
+			return len(data)
+		},
+		func() fyne.CanvasObject {
+			return container.NewHBox(widget.NewIcon(theme.MediaMusicIcon()), widget.NewLabel("Template Object"))
+		},
+		func(id widget.ListItemID, item fyne.CanvasObject) {
+			item.(*fyne.Container).Objects[1].(*widget.Label).SetText(data[id])
+		},
+	)
+	
+	updateList := func() {
+		songs, err := controller.GetSearchSongs(search)
+		if err == nil {
+			data = data[:0]
+			for _, song := range songs {
+				data = append(data, song.Title)
+			}
+		} else {
+			data = append(data, "Error loading songs")
+		}
+		list.Refresh()
+	}
+
+	icon := widget.NewIcon(theme.FileAudioIcon())
+	label := widget.NewLabel("Select An Item From The List")
+	label.TextStyle = fyne.TextStyle{Bold: true, Italic: true}
+	hbox := container.NewHBox(icon, label)
+	songEdit = widget.NewButtonWithIcon("Edit Song", theme.DocumentCreateIcon(), nil)
+	performerLabel := widget.NewLabel("Artist:  ")
+	performerEdit = widget.NewButtonWithIcon("Edit P.", theme.DocumentCreateIcon(), nil)
+	performerCont := container.NewGridWithColumns(2, performerLabel, performerEdit)
+	albumLabel := widget.NewLabel("Album: ")
+	albumEdit = widget.NewButtonWithIcon("Edit A.", theme.DocumentCreateIcon(), nil)
+	albumCont := container.NewGridWithColumns(2, albumLabel, albumEdit)
+	trackLabel := widget.NewLabel("Track: ")
+	yearLabel := widget.NewLabel("Year: ")
+	genreLabel := widget.NewLabel("Genre: ")
+	detailsCont := container.NewVBox(widget.NewSeparator(), performerCont, widget.NewSeparator(), albumCont, widget.NewSeparator(), 
+				trackLabel, widget.NewSeparator(), yearLabel, widget.NewSeparator(), genreLabel, widget.NewSeparator(), songEdit)
+	detailsCont.Hide()
+	detailsContainer := container.NewVBox(hbox, detailsCont)
+
+	music := widget.NewLabel("Your Music.")
+	musicIcon := widget.NewIcon(theme.FileAudioIcon())
+	iconPlay := widget.NewButtonWithIcon("", theme.MediaPlayIcon(), func() { fmt.Println("Play.") })
+	iconNext := widget.NewButtonWithIcon("", theme.MediaSkipNextIcon(), func() { fmt.Println("Next.") })
+	iconPrevious := widget.NewButtonWithIcon("", theme.MediaSkipPreviousIcon(), func() { fmt.Println("Previous.") })
+	iconStop := widget.NewButtonWithIcon("", theme.MediaStopIcon(), func() { fmt.Println("Stop.") })
+	iconPlay.Disable()
+	iconNext.Disable()
+	iconPrevious.Disable()
+	iconStop.Disable()
+
+	yourMusic := container.NewHBox(musicIcon, music)
+	contentIcons := container.NewHBox(iconPrevious, iconPlay, iconNext)
+	contentIcons2 := container.NewVBox(contentIcons, iconStop)
+
+	list.OnSelected = func(id widget.ListItemID) {
+		songs, err := controller.GetSearchSongs(search)
+		if err != nil {
+			dialog.ShowError(err, myWindow) 
+			return
+		}
+		song := songs[id]
+		label.SetText(song.Title)
+		music.SetText(song.Title)
+		icon.SetResource(theme.MediaMusicIcon())
+		musicIcon.SetResource(theme.MediaMusicIcon())
+		performerLabel.SetText("Artist: " + song.PerformerName)
+		albumLabel.SetText("Album: " + song.AlbumName)
+		trackLabel.SetText("Track: " + fmt.Sprintf("%d", song.Track))
+		yearLabel.SetText("Year: " + fmt.Sprintf("%d", song.Year))
+		genreLabel.SetText("Genre: " + song.Genre)
+		detailsCont.Show()
+		songEdit.OnTapped = func() {
+			openEditSongWindow(myApp, controller, song.ID, updateList)
+		}
+		albumEdit.OnTapped = func() {
+			openEditAlbumWindow(myApp, controller, song.AlbumID)
+		}
+		performerEdit.OnTapped = func() {
+			openEditPerformerWindow(myApp, controller, song.PerformerID)
+		}
+	}
+	list.OnUnselected = func(id widget.ListItemID) {
+		label.SetText("Select An Item From The List")
+		icon.SetResource(nil)
+	}
+	updateList()
+
+	return container.NewHSplit(list, container.NewCenter(detailsContainer)), container.NewHSplit(container.NewCenter(yourMusic), container.NewCenter(contentIcons2))
+}
+
+func openEditSongWindow(myApp fyne.App, controller *controller.Controller, id int64, updateList func()) {
 	editS := myApp.NewWindow("Edit")
 	editS.SetIcon(theme.DocumentCreateIcon())
 	editS.Resize(fyne.NewSize(600, 500))
@@ -342,10 +426,10 @@ func openEditSongWindow(myApp fyne.App, myWindow fyne.Window, controller *contro
 			trackNum, _ := strconv.Atoi(track.Text)
 			yearNum, _ := strconv.Atoi(year.Text)
 			if err := controller.EditSong(id, title.Text, genre.Text, trackNum, yearNum); err != nil {
-				dialog.ShowError(err, myWindow)
+				dialog.ShowError(err, editS)
 			} else {
 				fyne.CurrentApp().SendNotification(&fyne.Notification{
-					Title:   "Music Data Base",
+					Title:   "Music DB",
 					Content: "Modified Song: " + title.Text + ".\n Track: " + track.Text + ".\n Year:" + year.Text + ".\n Genre: " + genre.Text,
 				})
 				updateList()
@@ -365,7 +449,7 @@ func openEditSongWindow(myApp fyne.App, myWindow fyne.Window, controller *contro
 	editS.Show()
 }
 
-func openEditAlbumWindow(myApp fyne.App, myWindow fyne.Window, controller *controller.Controller, id int64) {
+func openEditAlbumWindow(myApp fyne.App, controller *controller.Controller, id int64) {
 	editA := myApp.NewWindow("Edit")
 	editA.SetIcon(theme.DocumentCreateIcon())
 	editA.Resize(fyne.NewSize(600, 500))
@@ -390,10 +474,10 @@ func openEditAlbumWindow(myApp fyne.App, myWindow fyne.Window, controller *contr
 			fmt.Println("Form submitted")
 			yearNum, _ := strconv.Atoi(year.Text)
 			if err := controller.EditAlbum(id, name.Text, yearNum); err != nil {
-				dialog.ShowError(err, myWindow)
+				dialog.ShowError(err, editA)
 			} else {
 				fyne.CurrentApp().SendNotification(&fyne.Notification{
-					Title:   "Music Data Base",
+					Title:   "Music DB",
 					Content: "Modified Album: " + name.Text + ".\n Year: " + year.Text,
 				})
 			}
@@ -412,7 +496,7 @@ func openEditAlbumWindow(myApp fyne.App, myWindow fyne.Window, controller *contr
 	editA.Show()
 }
 
-func openEditPerformerWindow(myApp fyne.App, myWindow fyne.Window, controller *controller.Controller, id int64) {
+func openEditPerformerWindow(myApp fyne.App, controller *controller.Controller, id int64) {
 	var (
 		person *widget.Check
 		group *widget.Check
@@ -530,19 +614,19 @@ func openEditPerformerWindow(myApp fyne.App, myWindow fyne.Window, controller *c
 				err := controller.DefPerson(id, name.Text, realName.Text, birth.Text, death.Text)
 				err = controller.AddPersonToGroup(name.Text, realName.Text, birth.Text, death.Text, nameInG.Text)
 				if err != nil {
-					dialog.ShowError(err, myWindow)
+					dialog.ShowError(err, editP)
 				} else {
 					fyne.CurrentApp().SendNotification(&fyne.Notification{
-						Title:   "Music Data Base",
+						Title:   "Music DB",
 						Content: "Modified Performer: " + name.Text + ".\n Real name: " + realName.Text + ".\n Birth date: " + birth.Text + ".\n Death date: " + death.Text + ".\n Add to group: " + nameInG.Text,
 					})
 				}
 			} else {
 				if err := controller.DefPerson(id, name.Text, realName.Text, birth.Text, death.Text); err != nil {
-					dialog.ShowError(err, myWindow)
+					dialog.ShowError(err, editP)
 				} else {
 					fyne.CurrentApp().SendNotification(&fyne.Notification{
-						Title:   "Music Data Base",
+						Title:   "Music DB",
 						Content: "Modified Performer: " + name.Text + ".\n Real name: " + realName.Text + ".\n Birth date: " + birth.Text + ".\n Death date: " + death.Text,
 					})
 				}
@@ -566,10 +650,10 @@ func openEditPerformerWindow(myApp fyne.App, myWindow fyne.Window, controller *c
 		OnSubmit: func() {
 			fmt.Println("Form submitted")
 			if err := controller.DefGroup(id, nameG.Text, start.Text, end.Text); err != nil {
-				dialog.ShowError(err, myWindow)
+				dialog.ShowError(err, editP)
 			} else {
 				fyne.CurrentApp().SendNotification(&fyne.Notification{
-					Title:   "Music Data Base",
+					Title:   "Music DB",
 					Content: "Modified Performer: " + nameG.Text + ".\n Start date: " + start.Text + ".\n End date: " + end.Text,
 				})
 			}
@@ -589,10 +673,10 @@ func openEditPerformerWindow(myApp fyne.App, myWindow fyne.Window, controller *c
 		OnSubmit: func() {
 			fmt.Println("Form submitted")
 			if err := controller.EditPerf(id, newName.Text); err != nil {
-				dialog.ShowError(err, myWindow)
+				dialog.ShowError(err, editP)
 			} else {
 				fyne.CurrentApp().SendNotification(&fyne.Notification{
-					Title:   "Music Data Base",
+					Title:   "Music DB",
 					Content: "Modified Performer: " + newName.Text,
 				})
 			}
