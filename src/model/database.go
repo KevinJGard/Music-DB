@@ -327,7 +327,7 @@ func (db *DataBase) InsertPersonInGroup(personID int64, groupID int64) error {
 
 func (db *DataBase) SearchByTitle(title string) ([]Song, error) {
 	var songs []Song
-	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE title = ?`, title)
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE title LIKE ?`, "%"+title+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -354,8 +354,7 @@ func (db *DataBase) SearchByTitle(title string) ([]Song, error) {
 
 func (db *DataBase) SearchByPerformer(performer string) ([]Song, error) {
 	var songs []Song
-	idPerf, err := db.GetPerformerID(performer)
-	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE id_performer = ?`, idPerf)
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE id_performer IN (SELECT id_performer FROM performers WHERE name LIKE ?)`, "%"+performer+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +381,7 @@ func (db *DataBase) SearchByPerformer(performer string) ([]Song, error) {
 
 func (db *DataBase) SearchByAlbum(album string) ([]Song, error) {
 	var songs []Song
-	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE id_album IN (SELECT id_album FROM albums WHERE name = ?)`, album)
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE id_album IN (SELECT id_album FROM albums WHERE name LIKE ?)`, "%"+album+"%")
 	if err != nil {
 		return nil, err
 	}
@@ -436,7 +435,7 @@ func (db *DataBase) SearchByYear(year int) ([]Song, error) {
 
 func (db *DataBase) SearchByGenre(genre string) ([]Song, error) {
 	var songs []Song
-	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE genre = ?`, genre)
+	rows, err := db.Db.Query(`SELECT * FROM rolas WHERE genre LIKE ?`, "%"+genre+"%")
 	if err != nil {
 		return nil, err
 	}
