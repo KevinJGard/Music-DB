@@ -58,7 +58,7 @@ func TestNewDataBase(t *testing.T) {
 		assertTableExists(t, db, table)
 	}
     
-    dbFilePath := filepath.Join(os.Getenv("HOME"), ".local", "share", "MusicDB", "music.sqlite")
+    dbFilePath := filepath.Join(os.Getenv("HOME"), ".local", "share", "MusicDB", "music.db")
     _, err := os.Stat(dbFilePath)
     assert.NoError(t, err, "Database file should exist.")
     defer db.Db.Close()
