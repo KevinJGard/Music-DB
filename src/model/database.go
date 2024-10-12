@@ -18,7 +18,7 @@ type DataBase struct {
 func NewDataBase() *DataBase {
 	dbDir := filepath.Join(os.Getenv("HOME"), ".local", "share", "MusicDB")
 	os.MkdirAll(dbDir, os.ModePerm)
-	dbFile := filepath.Join(dbDir, "music.sqlite")
+	dbFile := filepath.Join(dbDir, "music.db")
 
 	database, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
